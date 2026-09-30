@@ -1,32 +1,3 @@
-
-Claude Desktop (Windows), Conectado
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Widget · JS
 /*!
  * WaLead Widget — Widget de WhatsApp con captura de leads
  * Uso mínimo:
