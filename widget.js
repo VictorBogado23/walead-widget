@@ -362,13 +362,15 @@
     });
   }
  
-  // Lee un valor de localStorage de forma segura.
-  function ls(key) {
+  // Lee los identificadores de atribución desde localStorage.
+  // El sistema de tracking los guarda juntos en 'vm_last_click' -> { data: {...} }
+  // (mismo origen que usa la etiqueta del formulario en GTM).
+  function getAttribution() {
     try {
-      var v = window.localStorage.getItem(key);
-      return v == null ? "" : v;
+      var stored = JSON.parse(window.localStorage.getItem("vm_last_click") || "{}");
+      return stored.data || {};
     } catch (e) {
-      return "";
+      return {};
     }
   }
  
@@ -380,7 +382,7 @@
   function saveLead(data, meta) {
     if (!cfg.sheet) return;
  
-    var ids = getClickIds(); // gclid/gbraid/wbraid/fbclid desde la URL
+    var attr = getAttribution(); // identificadores guardados por el tracking (vm_last_click.data)
  
     var payload = {
       fecha: "", // lo pone GTM
@@ -390,13 +392,12 @@
       valor: "", // lo completa el comercial
       moneda: cfg.currency, // data-currency (ej: ARS), vacío por defecto
       transaction_id: "", // lo pone GTM
-      // Identificadores: primero lo que ya guardó tu tracking en localStorage,
-      // y si no, lo que venga en la URL de la visita.
-      gclid: ls("gclid") || ids.gclid || "",
-      gbraid: ls("gbraid") || ids.gbraid || "",
-      wbraid: ls("wbraid") || ids.wbraid || "",
-      fbp: ls("fbp") || "",
-      fbc: ls("fbc") || (ids.fbclid ? "fb.1." + Date.now() + "." + ids.fbclid : "")
+      // Identificadores publicitarios desde localStorage (mismo origen que el formulario)
+      gclid: attr.gclid || "",
+      gbraid: attr.gbraid || "",
+      wbraid: attr.wbraid || "",
+      fbp: attr.fbp || "",
+      fbc: attr.fbc || ""
     };
  
     try {
