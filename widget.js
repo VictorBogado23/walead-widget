@@ -400,6 +400,14 @@
       fbc: attr.fbc || ""
     };
  
+    // --- Candado anti-duplicado ---
+    // Aunque el widget se cargue/monte dos veces, o el submit se dispare
+    // dos veces, este lead sólo se envía UNA vez por sesión.
+    var huella = (payload.email + "|" + payload.telefono).toLowerCase();
+    window.__waLeadSent = window.__waLeadSent || {};
+    if (window.__waLeadSent[huella]) return;
+    window.__waLeadSent[huella] = true;
+ 
     try {
       // 'no-cors' + text/plain evita el preflight CORS con Apps Script.
       fetch(cfg.sheet, {
