@@ -1,0 +1,22 @@
+{
+  "name": "walead-widget",
+  "version": "1.0.0",
+  "description": "Widget flotante de WhatsApp con captura de leads y guardado en Google Sheets.",
+  "main": "widget.js",
+  "files": [
+    "widget.js"
+  ],
+  "keywords": [
+    "whatsapp",
+    "widget",
+    "leads",
+    "chat",
+    "google-sheets"
+  ],
+  "author": "Victor Bogado",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VictorBogado23/walead-widget.git"
+  }
+}
