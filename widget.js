@@ -1,3 +1,36 @@
+
+Claude Desktop (Windows), Conectado
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Widget · JS
 /*!
  * WaLead Widget — Widget de WhatsApp con captura de leads
  * Uso mínimo:
@@ -12,11 +45,11 @@
  */
 (function () {
   "use strict";
-
+ 
   // Evita que se cargue dos veces en la misma página.
   if (window.__waLeadLoaded) return;
   window.__waLeadLoaded = true;
-
+ 
   // El <script> que nos cargó (para leer sus data-attributes).
   var thisScript =
     document.currentScript ||
@@ -24,7 +57,7 @@
       var s = document.getElementsByTagName("script");
       return s[s.length - 1];
     })();
-
+ 
   // ------- Lectura de configuración desde los data-attributes -------
   function attr(name, fallback) {
     var v = thisScript.getAttribute("data-" + name);
@@ -35,7 +68,7 @@
     if (v === null) return fallback;
     return v === "true" || v === "1" || v === "";
   }
-
+ 
   var cfg = {
     phone: (attr("phone", "") || "").replace(/[^\d]/g, ""), // solo dígitos, con código de país
     sheet: attr("sheet", ""), // URL del Apps Script (opcional)
@@ -54,16 +87,17 @@
       "Hola! Soy {name}. Mi teléfono: {phone}. {message}"
     ),
     greeting: attr("greeting", ""), // saludo interno arriba del form (opcional)
+    currency: attr("currency", ""), // moneda enviada al Sheet (ej: ARS). Vacío por defecto.
     delay: parseInt(attr("delay", "0"), 10) || 0, // ms para abrir solo automáticamente (0 = no)
     consentText: attr("consent-text", ""), // si se define, muestra checkbox de consentimiento
     thanks: attr("thanks", "¡Gracias! Te estamos redirigiendo a WhatsApp…"),
   };
-
+ 
   if (!cfg.phone) {
     console.warn("[WaLead] Falta data-phone. El widget no se mostrará.");
     return;
   }
-
+ 
   // ------- Parseo de campos -------
   // Devuelve [{key, label, type, required}]
   function parseFields(str) {
@@ -91,9 +125,9 @@
       .filter(Boolean);
   }
   var fields = parseFields(cfg.fields);
-
+ 
   var TEXT_ON = pickTextColor(cfg.color); // color de texto legible sobre el color de marca
-
+ 
   // ------- Estilos (aislados con prefijo .wl-) -------
   var css =
     "" +
@@ -152,12 +186,12 @@
     ".wl-foot{text-align:center;font-size:10px;color:#9aa4ad;padding:0 0 12px;}" +
     ".wl-foot a{color:#9aa4ad;text-decoration:none;}" +
     "@media (max-width:420px){.wl-panel{width:calc(100vw - 32px);}}";
-
+ 
   var waIcon =
     '<svg viewBox="0 0 32 32" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M16 3C9.4 3 4 8.4 4 15c0 2.1.6 4.2 1.6 6L4 29l8.2-1.6c1.7.9 3.7 1.4 5.8 1.4 6.6 0 12-5.4 12-12S22.6 3 16 3zm0 22c-1.8 0-3.6-.5-5.1-1.4l-.4-.2-4.9 1 1-4.8-.2-.4C5.5 18.6 5 16.8 5 15 5 9 9.9 4 16 4s11 5 11 11-4.9 10-11 10zm6.1-7.5c-.3-.2-2-1-2.3-1.1-.3-.1-.5-.2-.8.2-.2.3-.9 1.1-1.1 1.3-.2.2-.4.2-.7.1-.3-.2-1.4-.5-2.6-1.6-1-.9-1.6-1.9-1.8-2.3-.2-.3 0-.5.1-.7l.5-.6c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.5-.5-.8-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.2-1.2 2.9s1.2 3.3 1.4 3.6c.2.2 2.5 3.8 6 5.3.8.4 1.5.6 2 .7.8.3 1.6.2 2.2.1.7-.1 2-.8 2.3-1.6.3-.8.3-1.5.2-1.6-.1-.2-.3-.3-.6-.4z"/></svg>';
   var checkIcon =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
-
+ 
   // ------- Construcción del DOM -------
   function el(tag, cls, html) {
     var e = document.createElement(tag);
@@ -165,14 +199,14 @@
     if (html != null) e.innerHTML = html;
     return e;
   }
-
+ 
   function build() {
     var style = el("style");
     style.textContent = css;
     document.head.appendChild(style);
-
+ 
     var root = el("div", "wl-root wl-" + (cfg.position === "left" ? "left" : "right"));
-
+ 
     // Panel
     var panel = el("div", "wl-panel");
     var head = el("div", "wl-head");
@@ -182,13 +216,13 @@
     closeBtn.setAttribute("aria-label", "Cerrar");
     head.appendChild(closeBtn);
     panel.appendChild(head);
-
+ 
     var body = el("div", "wl-body");
     var form = el("form", "wl-form");
     form.setAttribute("novalidate", "novalidate");
-
+ 
     if (cfg.greeting) body.appendChild(el("p", "wl-greet", escapeHtml(cfg.greeting)));
-
+ 
     fields.forEach(function (f) {
       var wrap = el("div", "wl-field");
       wrap.setAttribute("data-key", f.key);
@@ -212,7 +246,7 @@
       wrap.appendChild(el("div", "wl-errmsg", "Este campo es obligatorio"));
       form.appendChild(wrap);
     });
-
+ 
     if (cfg.consentText) {
       var cons = el("label", "wl-consent");
       var chk = el("input");
@@ -222,7 +256,7 @@
       cons.appendChild(el("span", null, escapeHtml(cfg.consentText)));
       form.appendChild(cons);
     }
-
+ 
     var submit = el(
       "button",
       "wl-submit",
@@ -231,7 +265,7 @@
     submit.type = "submit";
     form.appendChild(submit);
     body.appendChild(form);
-
+ 
     var foot = el(
       "div",
       "wl-foot",
@@ -239,17 +273,17 @@
     );
     body.appendChild(foot);
     panel.appendChild(body);
-
+ 
     // Burbuja
     var bubble = el("button", "wl-bubble");
     bubble.setAttribute("aria-label", "Abrir chat de WhatsApp");
     bubble.appendChild(el("span", "wl-ico", waIcon));
     if (cfg.ctaText) bubble.appendChild(el("span", "wl-cta", escapeHtml(cfg.ctaText)));
-
+ 
     root.appendChild(panel);
     root.appendChild(bubble);
     document.body.appendChild(root);
-
+ 
     // ------- Interacción -------
     function toggle(open) {
       if (open === undefined) open = !root.classList.contains("wl-open");
@@ -261,14 +295,14 @@
     closeBtn.addEventListener("click", function () {
       toggle(false);
     });
-
+ 
     // Apertura automática con delay opcional
     if (cfg.delay > 0) {
       setTimeout(function () {
         toggle(true);
       }, cfg.delay);
     }
-
+ 
     // Validación de un campo
     function validateField(wrap) {
       var f = fields.filter(function (x) {
@@ -294,10 +328,10 @@
       var wrap = ev.target.closest(".wl-field");
       if (wrap && wrap.classList.contains("wl-err")) validateField(wrap);
     });
-
+ 
     form.addEventListener("submit", function (ev) {
       ev.preventDefault();
-
+ 
       var ok = true;
       var data = {};
       Array.prototype.forEach.call(form.querySelectorAll(".wl-field"), function (wrap) {
@@ -305,7 +339,7 @@
         var input = wrap.querySelector("input,textarea");
         data[wrap.getAttribute("data-key")] = (input.value || "").trim();
       });
-
+ 
       // Consentimiento obligatorio si está configurado
       if (cfg.consentText) {
         var chkEl = form.querySelector(".wl-consent-chk");
@@ -315,9 +349,9 @@
         }
       }
       if (!ok) return;
-
+ 
       submit.disabled = true;
-
+ 
       // Metadatos útiles para el CRM
       var meta = {
         page_url: location.href,
@@ -326,15 +360,15 @@
         utm: getUTMs(),
         timestamp: new Date().toISOString(),
       };
-
+ 
       // 1) Guardar el lead en Google Sheets (si está configurado). No bloquea el WhatsApp.
       saveLead(data, meta);
-
+ 
       // 2) Armar y abrir el enlace de WhatsApp
       var msg = renderTemplate(cfg.template, data);
       var waUrl =
         "https://wa.me/" + cfg.phone + "?text=" + encodeURIComponent(msg);
-
+ 
       // Mostrar mensaje de gracias
       body.innerHTML =
         '<div class="wl-thanks">' +
@@ -342,26 +376,52 @@
         "<div>" +
         escapeHtml(cfg.thanks) +
         "</div></div>";
-
+ 
       // Abrir WhatsApp (nueva pestaña)
       window.open(waUrl, "_blank");
-
+ 
       // Disparar evento al dataLayer (para GA4 / GTM), igual que hace tochat.be
       pushDataLayer(data, meta);
     });
   }
-
+ 
+  // Lee un valor de localStorage de forma segura.
+  function ls(key) {
+    try {
+      var v = window.localStorage.getItem(key);
+      return v == null ? "" : v;
+    } catch (e) {
+      return "";
+    }
+  }
+ 
   // ------- Guardado en Google Sheets -------
+  // Manda el payload con los MISMOS nombres que espera el doPost del Sheet:
+  // fecha, email, telefono, clasificacion, valor, moneda, transaction_id,
+  // gclid, gbraid, wbraid, fbp, fbc.
+  // fecha y transaction_id los completa GTM -> el widget los deja vacíos.
   function saveLead(data, meta) {
     if (!cfg.sheet) return;
-    var payload = {};
-    for (var k in data) payload[k] = data[k];
-    payload._page_url = meta.page_url;
-    payload._page_title = meta.page_title;
-    payload._referrer = meta.referrer;
-    payload._timestamp = meta.timestamp;
-    for (var u in meta.utm) payload["_" + u] = meta.utm[u];
-
+ 
+    var ids = getClickIds(); // gclid/gbraid/wbraid/fbclid desde la URL
+ 
+    var payload = {
+      fecha: "", // lo pone GTM
+      email: data.email || data.mail || "",
+      telefono: data.phone || data.telefono || data.tel || "",
+      clasificacion: "", // lo completa el comercial
+      valor: "", // lo completa el comercial
+      moneda: cfg.currency, // data-currency (ej: ARS), vacío por defecto
+      transaction_id: "", // lo pone GTM
+      // Identificadores: primero lo que ya guardó tu tracking en localStorage,
+      // y si no, lo que venga en la URL de la visita.
+      gclid: ls("gclid") || ids.gclid || "",
+      gbraid: ls("gbraid") || ids.gbraid || "",
+      wbraid: ls("wbraid") || ids.wbraid || "",
+      fbp: ls("fbp") || "",
+      fbc: ls("fbc") || (ids.fbclid ? "fb.1." + Date.now() + "." + ids.fbclid : "")
+    };
+ 
     try {
       // 'no-cors' + text/plain evita el preflight CORS con Apps Script.
       fetch(cfg.sheet, {
@@ -374,7 +434,7 @@
       /* silencioso: nunca bloquear el envío a WhatsApp */
     }
   }
-
+ 
   // ------- Helpers -------
   function renderTemplate(tpl, data) {
     return tpl.replace(/\{([^}]+)\}/g, function (_, key) {
@@ -382,7 +442,7 @@
       return v ? v : "";
     });
   }
-
+ 
   function getUTMs() {
     var out = {};
     try {
@@ -396,7 +456,20 @@
     } catch (e) {}
     return out;
   }
-
+ 
+  // IDs de click de anuncios desde la URL actual (por si no están en localStorage).
+  function getClickIds() {
+    var out = { gclid: "", gbraid: "", wbraid: "", fbclid: "" };
+    try {
+      var p = new URLSearchParams(location.search);
+      ["gclid", "gbraid", "wbraid", "fbclid"].forEach(function (k) {
+        var v = p.get(k);
+        if (v) out[k] = v;
+      });
+    } catch (e) {}
+    return out;
+  }
+ 
   function pushDataLayer(data, meta) {
     try {
       window.dataLayer = window.dataLayer || [];
@@ -407,7 +480,7 @@
       });
     } catch (e) {}
   }
-
+ 
   function escapeHtml(s) {
     return String(s)
       .replace(/&/g, "&amp;")
@@ -415,7 +488,7 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
   }
-
+ 
   // Elige negro o blanco según luminancia del color de marca (contraste legible).
   function pickTextColor(hex) {
     var c = (hex || "").replace("#", "");
@@ -428,7 +501,7 @@
     var lum = (0.299 * r + 0.587 * g + 0.114 * b);
     return lum > 160 ? "#111111" : "#ffffff";
   }
-
+ 
   // ------- Arranque cuando el DOM está listo -------
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", build);
@@ -436,3 +509,4 @@
     build();
   }
 })();
+ 
