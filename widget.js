@@ -26,10 +26,6 @@ Claude Desktop (Windows), Conectado
 
 
 
-
-
-
-
 Widget · JS
 /*!
  * WaLead Widget — Widget de WhatsApp con captura de leads
@@ -50,6 +46,11 @@ Widget · JS
   if (window.__waLeadLoaded) return;
   window.__waLeadLoaded = true;
  
+  // Config global opcional (para Google Tag Manager u otros loaders donde
+  // document.currentScript no está disponible). Ej:
+  //   window.WALEAD_CONFIG = { phone:"549...", sheet:".../exec", currency:"ARS" };
+  var GCFG = (typeof window !== "undefined" && window.WALEAD_CONFIG) || null;
+ 
   // El <script> que nos cargó (para leer sus data-attributes).
   var thisScript =
     document.currentScript ||
@@ -58,9 +59,14 @@ Widget · JS
       return s[s.length - 1];
     })();
  
-  // ------- Lectura de configuración desde los data-attributes -------
+  // ------- Lectura de configuración -------
+  // Prioridad: window.WALEAD_CONFIG  >  data-atributos del <script>  >  fallback.
   function attr(name, fallback) {
-    var v = thisScript.getAttribute("data-" + name);
+    // camelCase para la config global: "button-text" -> "buttonText"
+    var camel = name.replace(/-([a-z])/g, function (_, c) { return c.toUpperCase(); });
+    if (GCFG && GCFG[camel] != null && GCFG[camel] !== "") return GCFG[camel];
+    if (GCFG && GCFG[name] != null && GCFG[name] !== "") return GCFG[name];
+    var v = thisScript ? thisScript.getAttribute("data-" + name) : null;
     return v === null || v === "" ? fallback : v;
   }
   function boolAttr(name, fallback) {
