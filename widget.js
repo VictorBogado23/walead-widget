@@ -352,63 +352,29 @@
     });
   }
 
-  // Lee los identificadores de atribución desde localStorage.
-  // El sistema de tracking los guarda juntos en 'vm_last_click' -> { data: {...} }
-  // (mismo origen que usa la etiqueta del formulario en GTM).
-  function getAttribution() {
-    try {
-      var stored = JSON.parse(window.localStorage.getItem("vm_last_click") || "{}");
-      return stored.data || {};
-    } catch (e) {
-      return {};
-    }
-  }
+  // ------- Envío del lead al dataLayer (para que lo procese GTM) -------
+  // El widget NO escribe en el Sheet. Solo publica el evento 'walead_submit'
+  // con los datos del formulario. Una etiqueta de GTM con activador en ese
+  // evento arma el payload y lo manda al Sheet (igual que el formulario).
+  function pushLead(data) {
+    var email = data.email || data.mail || "";
+    var telefono = data.phone || data.telefono || data.tel || "";
 
-  // ------- Guardado en Google Sheets -------
-  // Manda el payload con los MISMOS nombres que espera el doPost del Sheet:
-  // fecha, email, telefono, clasificacion, valor, moneda, transaction_id,
-  // gclid, gbraid, wbraid, fbp, fbc.
-  // fecha y transaction_id los completa GTM -> el widget los deja vacíos.
-  function saveLead(data, meta) {
-    if (!cfg.sheet) return;
-
-    var attr = getAttribution(); // identificadores guardados por el tracking (vm_last_click.data)
-
-    var payload = {
-      fecha: "", // lo pone GTM
-      email: data.email || data.mail || "",
-      telefono: data.phone || data.telefono || data.tel || "",
-      clasificacion: "", // lo completa el comercial
-      valor: "", // lo completa el comercial
-      moneda: cfg.currency, // data-currency (ej: ARS), vacío por defecto
-      transaction_id: "", // lo pone GTM
-      // Identificadores publicitarios desde localStorage (mismo origen que el formulario)
-      gclid: attr.gclid || "",
-      gbraid: attr.gbraid || "",
-      wbraid: attr.wbraid || "",
-      fbp: attr.fbp || "",
-      fbc: attr.fbc || ""
-    };
-
-    // --- Candado anti-duplicado ---
-    // Aunque el widget se cargue/monte dos veces, o el submit se dispare
-    // dos veces, este lead sólo se envía UNA vez por sesión.
-    var huella = (payload.email + "|" + payload.telefono).toLowerCase();
+    // Candado anti-duplicado: el mismo lead se empuja UNA sola vez por sesión.
+    var huella = (email + "|" + telefono).toLowerCase();
     window.__waLeadSent = window.__waLeadSent || {};
     if (window.__waLeadSent[huella]) return;
     window.__waLeadSent[huella] = true;
 
     try {
-      // 'no-cors' + text/plain evita el preflight CORS con Apps Script.
-      fetch(cfg.sheet, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload),
-      }).catch(function () {});
-    } catch (e) {
-      /* silencioso: nunca bloquear el envío a WhatsApp */
-    }
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: "walead_submit",   // <- activador en GTM
+        walead_email: email,
+        walead_telefono: telefono,
+        walead_moneda: cfg.currency || ""
+      });
+    } catch (e) {}
   }
 
   // ------- Helpers -------
@@ -417,44 +383,6 @@
       var v = data[key.trim()];
       return v ? v : "";
     });
-  }
-
-  function getUTMs() {
-    var out = {};
-    try {
-      var p = new URLSearchParams(location.search);
-      ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid"].forEach(
-        function (k) {
-          var v = p.get(k);
-          if (v) out[k] = v;
-        }
-      );
-    } catch (e) {}
-    return out;
-  }
-
-  // IDs de click de anuncios desde la URL actual (por si no están en localStorage).
-  function getClickIds() {
-    var out = { gclid: "", gbraid: "", wbraid: "", fbclid: "" };
-    try {
-      var p = new URLSearchParams(location.search);
-      ["gclid", "gbraid", "wbraid", "fbclid"].forEach(function (k) {
-        var v = p.get(k);
-        if (v) out[k] = v;
-      });
-    } catch (e) {}
-    return out;
-  }
-
-  function pushDataLayer(data, meta) {
-    try {
-      window.dataLayer = window.dataLayer || [];
-      window.dataLayer.push({
-        event: "walead_submit",
-        walead_name: data.name || data.nombre || "",
-        walead_page: meta.page_url,
-      });
-    } catch (e) {}
   }
 
   function escapeHtml(s) {
