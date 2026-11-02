@@ -7,7 +7,7 @@ escrito. Liviano, sin dependencias y personalizable con `data-attributes`.
 ## Instalación rápida
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/VictorBogado23/walead-widget@v1.0.0/widget.js"
+<script src="https://cdn.jsdelivr.net/gh/VictorBogado23/walead-widget@main/widget.js"
         data-phone="5491122334455"
         data-sheet="https://script.google.com/macros/s/XXXX/exec"
         data-color="#25D366"
@@ -16,6 +16,12 @@ escrito. Liviano, sin dependencias y personalizable con `data-attributes`.
 
 Solo `data-phone` es obligatorio. La guía completa está en
 [`INSTALACION.md`](./INSTALACION.md).
+
+> **Por qué `@main` y no un número de versión:** apuntando a `@main`, todos los clientes
+> reciben automáticamente cada mejora que subas al repo, sin que tengas que avisarles para
+> que actualicen su `<script>`. El único costo es el cache de jsDelivr (hasta ~12-24hs
+> después de un commit) — si necesitás que un cambio llegue ya mismo, podés purgar el cache
+> manualmente en https://www.jsdelivr.com/tools/purge.
 
 ## Contenido del repo
 
