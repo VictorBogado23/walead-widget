@@ -329,12 +329,14 @@
 
       submit.disabled = true;
 
-      // 1) Empujar los datos al dataLayer para que GTM los envíe al Sheet.
-      //    El widget NO escribe en el Sheet: de eso se encarga una etiqueta de GTM
-      //    con activador en el evento 'walead_submit'.
+      // 1) Mandar directo al Sheet del cliente (email, teléfono y atribución).
+      sendToSheet(data);
+
+      // 2) Empujar también al dataLayer, por si el cliente usa GTM/GA4 para
+      //    sus propias conversiones (no reemplaza el envío de arriba).
       pushLead(data);
 
-      // 2) Armar y abrir el enlace de WhatsApp
+      // 3) Armar y abrir el enlace de WhatsApp
       var msg = renderTemplate(cfg.template, data);
       var waUrl =
         "https://wa.me/" + cfg.phone + "?text=" + encodeURIComponent(msg);
@@ -352,10 +354,83 @@
     });
   }
 
+  // ------- Atribución: UTMs, click IDs y cookie de Meta Pixel -------
+  // Se lee de la URL actual y se guarda en localStorage para no perderla si
+  // el visitante navega a otra página del sitio antes de completar el form.
+  // Un valor nuevo en la URL pisa al guardado (atribución al último clic).
+  function readAttribution() {
+    var stored = {};
+    try {
+      stored = JSON.parse(localStorage.getItem("__waleadAttr") || "{}");
+    } catch (e) {}
+
+    var qs = {};
+    try {
+      (window.location.search || "")
+        .replace(/^\?/, "")
+        .split("&")
+        .forEach(function (pair) {
+          if (!pair) return;
+          var kv = pair.split("=");
+          qs[decodeURIComponent(kv[0])] = decodeURIComponent((kv[1] || "").replace(/\+/g, " "));
+        });
+    } catch (e) {}
+
+    var keys = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid"];
+    var changed = false;
+    keys.forEach(function (k) {
+      if (qs[k]) {
+        stored[k] = qs[k];
+        changed = true;
+      }
+    });
+    if (changed) {
+      try {
+        localStorage.setItem("__waleadAttr", JSON.stringify(stored));
+      } catch (e) {}
+    }
+    return stored;
+  }
+
+  function getCookie(name) {
+    var m = document.cookie.match(new RegExp("(?:^|;\\s*)" + name + "=([^;]*)"));
+    return m ? decodeURIComponent(m[1]) : "";
+  }
+
+  // ------- Envío del lead al Sheet del cliente (directo, sin GTM) -------
+  // Manda únicamente: email, teléfono, utms, gclid, fbclid y fbp.
+  // mode:"no-cors" + Content-Type:"text/plain" evita el preflight de CORS
+  // que Apps Script no responde bien; no podemos leer la respuesta, pero
+  // el POST llega igual, que es lo único que necesitamos.
+  function sendToSheet(data) {
+    if (!cfg.sheet) return;
+    var attribution = readAttribution();
+    var payload = {
+      email: data.email || data.mail || "",
+      telefono: data.phone || data.telefono || data.tel || "",
+      utm_source: attribution.utm_source || "",
+      utm_medium: attribution.utm_medium || "",
+      utm_campaign: attribution.utm_campaign || "",
+      utm_term: attribution.utm_term || "",
+      utm_content: attribution.utm_content || "",
+      gclid: attribution.gclid || "",
+      fbclid: attribution.fbclid || "",
+      fbp: getCookie("_fbp")
+    };
+    try {
+      fetch(cfg.sheet, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {}
+  }
+
   // ------- Envío del lead al dataLayer (para que lo procese GTM) -------
-  // El widget NO escribe en el Sheet. Solo publica el evento 'walead_submit'
-  // con los datos del formulario. Una etiqueta de GTM con activador en ese
-  // evento arma el payload y lo manda al Sheet (igual que el formulario).
+  // Esto es un complemento opcional, no reemplaza el envío al Sheet de
+  // arriba. Sirve para que el cliente arme sus propias conversiones en
+  // GA4/Google Ads si ya tiene GTM instalado.
   function pushLead(data) {
     var email = data.email || data.mail || "";
     var telefono = data.phone || data.telefono || data.tel || "";
