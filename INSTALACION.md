@@ -108,10 +108,43 @@ data-template="Hola! Soy {name} ({email}). Mi teléfono es {phone}. Consulta: {m
 
 ## Qué se guarda en la hoja
 
-Cada lead crea una fila con: **Fecha** + todos los campos del formulario + metadatos útiles
-para publicidad (se guardan con prefijo `_`): `_page_url`, `_page_title`, `_referrer`,
-`_timestamp`, y si vienen en la URL: `_utm_source`, `_utm_medium`, `_utm_campaign`,
-`_gclid`, `_fbclid`. Ideal para saber de qué campaña vino cada lead.
+El widget manda el envío **directo al Sheet** (no depende de GTM para esto). Cada lead
+crea una fila con exactamente estos campos — no todos los campos del formulario, solo los
+de contacto y atribución:
+
+`email`, `telefono`, `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`,
+`gclid`, `fbclid`, `fbp` (cookie del Meta Pixel, si existe en el sitio).
+
+> Para que `email` llegue con datos, `data-fields` tiene que incluir un campo `email`
+> (el default de fábrica es `name,phone,message`, sin email).
+
+Las UTMs y click IDs se leen de la URL en la que el visitante llegó al sitio y quedan
+guardadas en `localStorage` del navegador, así no se pierden si navega a otra página antes
+de completar el formulario.
+
+---
+
+## Abrir el widget desde un botón del sitio
+
+Cualquier botón o enlace del sitio del cliente puede abrir el widget agregándole el
+atributo `data-walead-open` — no importa el texto, la clase ni el tag:
+
+```html
+<button data-walead-open>Hablanos por WhatsApp</button>
+```
+
+Funciona también con botones agregados al DOM después de que cargó el widget (menús que
+se renderizan dinámicamente, por ejemplo), porque el listener queda escuchando sobre todo
+el `document`.
+
+También queda disponible una API en JavaScript, por si se necesita abrir el widget desde
+código (por ejemplo, un tag de Custom HTML en GTM):
+
+```js
+window.WaLead.open();   // abre el panel
+window.WaLead.close();  // lo cierra
+window.WaLead.toggle(); // alterna
+```
 
 ---
 
