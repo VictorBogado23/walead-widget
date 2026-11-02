@@ -273,6 +273,28 @@
       toggle(false);
     });
 
+    // API pública: permite abrir/cerrar el widget desde fuera (botones del
+    // sitio, otros scripts, GTM, etc.) sin depender de cómo esté armado el
+    // HTML del cliente.
+    window.WaLead = {
+      open: function () { toggle(true); },
+      close: function () { toggle(false); },
+      toggle: function () { toggle(); }
+    };
+
+    // Cualquier elemento con el atributo data-walead-open abre el widget al
+    // hacer click. No importa el texto, la clase ni el tag: basta con
+    // agregar el atributo. Ej: <button data-walead-open>Hablanos</button>.
+    // Se usa un listener delegado en document para que también funcione con
+    // botones agregados al DOM después de cargar el widget.
+    document.addEventListener("click", function (ev) {
+      var trigger = ev.target.closest && ev.target.closest("[data-walead-open]");
+      if (trigger) {
+        ev.preventDefault();
+        toggle(true);
+      }
+    });
+
     // Apertura automática con delay opcional
     if (cfg.delay > 0) {
       setTimeout(function () {
