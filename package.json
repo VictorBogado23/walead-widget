@@ -1,10 +1,14 @@
 {
   "name": "walead-widget",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Widget flotante de WhatsApp con captura de leads y guardado en Google Sheets.",
-  "main": "widget.js",
+  "main": "widget.min.js",
+  "scripts": {
+    "build": "npx --yes terser@5 widget.js --compress --mangle --comments \"/^!/\" --output widget.min.js"
+  },
   "files": [
-    "widget.js"
+    "widget.js",
+    "widget.min.js"
   ],
   "keywords": [
     "whatsapp",

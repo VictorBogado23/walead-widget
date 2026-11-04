@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configurador WaLead</title>
+  <style>
+    :root{
+      --bg:#f4f6f8;--card:#fff;--ink:#111b21;--muted:#5b6b76;--line:#dfe5e9;--soft:#eef2f4;
+      --brand:#128c4b;--brand-soft:#e5f6ec;--warn-bg:#fff6e5;--warn:#8a5a00;--focus:rgba(18,140,75,.25);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+    header{background:var(--card);border-bottom:1px solid var(--line);padding:18px 24px}
+    header h1{margin:0;font-size:20px}
+    header p{margin:4px 0 0;color:var(--muted);font-size:14px}
+    .layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:24px;max-width:1280px;margin:0 auto;padding:24px}
+    @media (max-width:960px){.layout{grid-template-columns:1fr;padding:16px}}
+
+    /* Formulario */
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}
+    .card h2{margin:0 0 4px;font-size:16px}
+    .card>p.lead{margin:0 0 16px;color:var(--muted);font-size:13.5px}
+    .f{margin-bottom:16px}
+    .f:last-child{margin-bottom:0}
+    .f label{display:block;font-weight:600;font-size:13.5px;margin-bottom:6px}
+    .f .help{color:var(--muted);font-size:12.5px;margin-top:5px}
+    input[type=text],input[type=url],input[type=tel],input[type=number],select,textarea{width:100%;font:inherit;font-size:15px;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;outline:0;transition:border-color .15s,box-shadow .15s}
+    textarea{min-height:76px;resize:vertical;line-height:1.4}
+    input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 4px var(--focus)}
+    input::placeholder,textarea::placeholder{color:#9aa7b0}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:520px){.row{grid-template-columns:1fr}}
+    .color{display:flex;gap:8px}
+    .color input[type=color]{width:46px;height:44px;padding:3px;border:1.5px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;flex:0 0 auto}
+    .check{display:flex;gap:10px;align-items:center;font-weight:500!important;cursor:pointer}
+    .check input{width:18px;height:18px;accent-color:var(--brand);margin:0}
+    .f label.check.show{font-size:12.5px;margin:6px 0 0}
+    input:disabled,textarea:disabled{background:var(--soft);color:var(--muted)}
+    .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .chips span{font-size:12px;color:var(--muted);align-self:center;margin-right:2px}
+    .chip{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}
+    .chip:hover{border-color:var(--brand);background:var(--brand-soft)}
+    .chip:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+    details.card summary{cursor:pointer;font-weight:700;font-size:16px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+    details.card summary::-webkit-details-marker{display:none}
+    details.card summary::after{content:"＋";color:var(--muted);font-weight:400}
+    details.card[open] summary::after{content:"－"}
+    details.card[open] summary{margin-bottom:16px}
+    .warn{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:16px}
+    .warn[hidden]{display:none}
+
+    /* Vista previa */
+    .side{position:sticky;top:16px;align-self:start}
+    @media (max-width:960px){.side{position:static}}
+    .tabs{display:flex;gap:4px;background:var(--soft);padding:4px;border-radius:10px;width:max-content;margin-bottom:12px}
+    .tabs button{font:inherit;font-size:13.5px;border:0;background:transparent;padding:6px 14px;border-radius:7px;cursor:pointer;color:var(--muted)}
+    .tabs button[aria-pressed=true]{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+    .stage{background:#dfe5e9;border-radius:14px;height:600px;display:flex;justify-content:center;overflow:hidden;border:1px solid var(--line)}
+    .stage iframe{border:0;width:100%;height:100%;background:#fff;transition:width .25s}
+    .stage.mobile iframe{width:390px;max-width:100%}
+    .preview-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .preview-head h2{margin:0;font-size:16px}
+    .reload{font:inherit;font-size:13px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer}
+
+    .wa{background:#efeae2;border-radius:12px;padding:14px;margin-top:4px}
+    .wa-top{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+    .wa-msg{margin-left:auto;max-width:90%;width:max-content;background:#d9fdd3;border-radius:10px 0 10px 10px;padding:8px 10px 6px;box-shadow:0 1px .5px rgba(11,20,26,.13);white-space:pre-wrap;word-break:break-word;font-size:14.5px}
+    .wa-msg small{display:block;text-align:right;color:#667781;font-size:11px;margin-top:2px}
+    .wa-actions{margin-top:10px;font-size:13px}
+    .wa-actions a{color:var(--brand);font-weight:600}
+
+    pre{margin:0;background:#0f1a20;color:#d7e3ea;border-radius:10px;padding:14px;font:12.5px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-x:auto;white-space:pre}
+    .code-head{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px}
+    .code-head h3{margin:0;font-size:14px}
+    .copy{font:inherit;font-size:13px;font-weight:600;border:0;background:var(--brand);color:#fff;border-radius:8px;padding:7px 12px;cursor:pointer;min-width:84px}
+    .copy:focus-visible,.reload:focus-visible,.tabs button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+    .foot{display:flex;justify-content:flex-end;gap:8px}
+    .ghost{font:inherit;font-size:13px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;cursor:pointer;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Configurador WaLead</h1>
+    <p>Completa los datos, mira cómo queda y copia el código para pegar en el sitio.</p>
+  </header>
+
+  <div class="layout">
+    <!-- ============ FORMULARIO ============ -->
+    <form id="cfg" autocomplete="off" onsubmit="return false">
+      <div class="warn" id="warn" role="status" hidden></div>
+
+      <section class="card">
+        <h2>1. El negocio</h2>
+        <p class="lead">Lo básico para que funcione.</p>
+        <div class="f">
+          <label for="name">Nombre del negocio</label>
+          <input type="text" id="name" placeholder="Ej: Pizzería Don José">
+          <div class="help">Se muestra como título y lo puedes usar en los mensajes con <b>{negocio}</b>.</div>
+        </div>
+        <div class="f">
+          <label for="phone">WhatsApp del negocio *</label>
+          <input type="tel" id="phone" placeholder="Ej: 5491122334455" inputmode="tel">
+          <div class="help">Con código de país, sin + ni espacios. Argentina: 54 9 + característica + número.</div>
+        </div>
+        <div class="f">
+          <label for="sheet">URL de la hoja de leads (Apps Script)</label>
+          <input type="url" id="sheet" placeholder="https://script.google.com/macros/s/…/exec">
+          <div class="help">Si la dejas vacía, el widget abre WhatsApp pero no guarda los datos.</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>2. Los mensajes</h2>
+        <p class="lead">Lo que ve el visitante y lo que te llega por WhatsApp.</p>
+        <div class="f">
+          <label for="greeting">Saludo del negocio (dentro del widget)</label>
+          <textarea id="greeting" placeholder="¡Hola! 👋 Déjanos tu email y tu WhatsApp y seguimos la conversación por ahí."></textarea>
+          <div class="chips" data-for="greeting"><span>Insertar:</span><button type="button" class="chip" data-v="{negocio}">Nombre del negocio</button></div>
+          <label class="check show"><input type="checkbox" id="showGreeting" checked> Mostrar el saludo</label>
+        </div>
+        <div class="f">
+          <label for="template">Mensaje que te envía el visitante por WhatsApp</label>
+          <textarea id="template" placeholder="¡Hola! Quiero hacer una consulta."></textarea>
+          <div class="chips" data-for="template"><span>Insertar:</span>
+            <button type="button" class="chip" data-v="{negocio}">Nombre del negocio</button>
+            <button type="button" class="chip" data-v="{pagina}">Página donde estaba</button>
+            <button type="button" class="chip" data-v="{email}">Su email</button>
+            <button type="button" class="chip" data-v="{phone}">Su teléfono</button>
+            <button type="button" class="chip" data-v="{country}">Su país</button>
+            <button type="button" class="chip" data-v="{url}">Link de la página</button>
+          </div>
+          <div class="help">Queda escrito en el chat; la persona lo puede editar antes de enviarlo.</div>
+        </div>
+        <div class="row">
+          <div class="f">
+            <label for="title">Título</label>
+            <input type="text" id="title" placeholder="¿Hablamos?">
+          </div>
+          <div class="f">
+            <label for="subtitle">Subtítulo (opcional)</label>
+            <input type="text" id="subtitle" placeholder="Ej: Te respondemos por WhatsApp">
+          </div>
+        </div>
+        <div class="row">
+          <div class="f">
+            <label for="buttonText">Texto del botón</label>
+            <input type="text" id="buttonText" placeholder="Continuar en WhatsApp">
+          </div>
+          <div class="f">
+            <label for="ctaText">Globo junto a la burbuja</label>
+            <input type="text" id="ctaText" placeholder="Ej: ¿Te ayudamos? 👋">
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>3. Apariencia</h2>
+        <p class="lead">Que combine con el sitio.</p>
+        <div class="row">
+          <div class="f">
+            <label for="colorText">Color de marca</label>
+            <div class="color">
+              <input type="color" id="color" value="#25d366" aria-label="Elegir color">
+              <input type="text" id="colorText" placeholder="#25D366">
+            </div>
+          </div>
+          <div class="f">
+            <label for="position">Posición</label>
+            <select id="position">
+              <option value="right">Abajo a la derecha</option>
+              <option value="left">Abajo a la izquierda</option>
+            </select>
+          </div>
+        </div>
+        <div class="f">
+          <label for="avatar">Logo o foto (URL de imagen)</label>
+          <input type="url" id="avatar" placeholder="https://…/logo.png">
+        </div>
+        <div class="f">
+          <label class="check"><input type="checkbox" id="launcher" checked> Mostrar la burbuja flotante</label>
+          <div class="help">Si la ocultas, el widget se abre solo desde botones del sitio (ver "Botones que abren el widget").</div>
+        </div>
+      </section>
+
+      <details class="card">
+        <summary>Opciones avanzadas</summary>
+        <div class="row">
+          <div class="f">
+            <label for="country">País por defecto del teléfono</label>
+            <select id="country"><option value="">Detectar automáticamente</option></select>
+          </div>
+          <div class="f">
+            <label for="countries">Países destacados</label>
+            <input type="text" id="countries" placeholder="Ej: AR,UY,PY">
+          </div>
+        </div>
+        <div class="f">
+          <label for="triggers">Botones que abren el widget (selector CSS)</label>
+          <input type="text" id="triggers" placeholder=".btn-contacto, a[href*='wa.me']">
+          <div class="help">Además siempre funcionan los botones con <code>data-walead-open</code> o links a <code>#walead</code>.</div>
+        </div>
+        <div class="f">
+          <label for="consentText">Casilla de consentimiento</label>
+          <input type="text" id="consentText" placeholder="Ej: Acepto ser contactado por WhatsApp y email.">
+          <div class="help">Si escribes un texto, la casilla aparece y es obligatoria.</div>
+        </div>
+        <div class="row">
+          <div class="f">
+            <label for="delay">Abrir solo después de (segundos)</label>
+            <input type="number" id="delay" min="0" step="1" placeholder="0 = no abrir solo">
+          </div>
+          <div class="f">
+            <label for="currency">Moneda (para la hoja)</label>
+            <input type="text" id="currency" placeholder="Ej: ARS">
+          </div>
+        </div>
+        <div class="row">
+          <div class="f">
+            <label for="privacy">Texto de privacidad</label>
+            <input type="text" id="privacy" placeholder="Tus datos están seguros. Nada de spam.">
+            <label class="check show"><input type="checkbox" id="showPrivacy" checked> Mostrar el texto de privacidad</label>
+          </div>
+          <div class="f">
+            <label for="thanks">Texto al enviar</label>
+            <input type="text" id="thanks" placeholder="Te estamos llevando a WhatsApp…">
+          </div>
+        </div>
+        <div class="f">
+          <label for="src">URL del widget.js</label>
+          <input type="url" id="src">
+          <div class="help">Desde dónde se carga el widget en el sitio del cliente.</div>
+        </div>
+      </details>
+
+      <div class="foot"><button type="button" class="ghost" id="reset">Empezar de nuevo</button></div>
+    </form>
+
+    <!-- ============ VISTA PREVIA + CÓDIGO ============ -->
+    <div class="side">
+      <section class="card">
+        <div class="preview-head">
+          <h2>Vista previa</h2>
+          <div class="tabs" role="group" aria-label="Dispositivo">
+            <button type="button" data-dev="desktop" aria-pressed="true">Escritorio</button>
+            <button type="button" data-dev="mobile" aria-pressed="false">Celular</button>
+          </div>
+        </div>
+        <div class="stage" id="stage"><iframe id="preview" title="Vista previa del widget"></iframe></div>
+        <div class="help" style="color:var(--muted);font-size:12.5px;margin-top:8px">
+          La vista previa funciona de verdad: si cargaste la URL de la hoja, un envío de prueba se guarda ahí.
+        </div>
+
+        <h2 style="font-size:16px;margin:20px 0 8px">Así te llega a WhatsApp</h2>
+        <div class="wa">
+          <div class="wa-top" id="waTop">Ejemplo con datos de prueba</div>
+          <div class="wa-msg"><span id="waText"></span><small>12:34 ✓✓</small></div>
+        </div>
+        <div class="wa-actions"><a id="waTest" target="_blank" rel="noopener">Probar este mensaje en mi WhatsApp →</a></div>
+      </section>
+
+      <section class="card">
+        <h2>Código para el sitio</h2>
+        <div class="code-head"><h3>Pegar antes de &lt;/body&gt;</h3><button type="button" class="copy" data-copy="codeHtml">Copiar</button></div>
+        <pre id="codeHtml"></pre>
+        <div class="code-head"><h3>O en Google Tag Manager (HTML personalizado)</h3><button type="button" class="copy" data-copy="codeGtm">Copiar</button></div>
+        <pre id="codeGtm"></pre>
+      </section>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var DEFAULT_SRC = "https://cdn.jsdelivr.net/gh/VictorBogado23/walead-widget@v1.1.0/widget.min.js";
+  var STORE_KEY = "walead_configurador";
+
+  // Campo del formulario -> atributo del widget (data-*) y clave camelCase (WALEAD_CONFIG).
+  var FIELDS = [
+    ["phone", "phone"], ["sheet", "sheet"], ["name", "name"],
+    ["title", "title"], ["subtitle", "subtitle"], ["greeting", "greeting"],
+    ["template", "template"], ["buttonText", "button-text"], ["ctaText", "cta-text"],
+    ["colorText", "color"], ["position", "position"], ["avatar", "avatar"],
+    ["launcher", "launcher"], ["country", "country"], ["countries", "countries"],
+    ["triggers", "triggers"], ["consentText", "consent-text"], ["delay", "delay"],
+    ["currency", "currency"], ["privacy", "privacy"], ["thanks", "thanks"],
+  ];
+  var DEFAULTS = { position: "right", colorText: "#25D366", launcher: true };
+  // Textos que se pueden quitar: campo -> casilla "Mostrar".
+  var SHOW = { greeting: "showGreeting", privacy: "showPrivacy" };
+
+  var COUNTRIES = [
+    ["AR","Argentina"],["BO","Bolivia"],["BR","Brasil"],["CL","Chile"],["CO","Colombia"],["CR","Costa Rica"],
+    ["CU","Cuba"],["EC","Ecuador"],["SV","El Salvador"],["ES","España"],["US","Estados Unidos"],["GT","Guatemala"],
+    ["HN","Honduras"],["MX","México"],["NI","Nicaragua"],["PA","Panamá"],["PY","Paraguay"],["PE","Perú"],
+    ["PR","Puerto Rico"],["DO","República Dominicana"],["UY","Uruguay"],["VE","Venezuela"],
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var form = $("cfg");
+  var countrySel = $("country");
+  COUNTRIES.forEach(function (c) {
+    var o = document.createElement("option");
+    o.value = c[0]; o.textContent = c[1];
+    countrySel.appendChild(o);
+  });
+
+  // ---------- Estado ----------
+  function read() {
+    var s = {};
+    FIELDS.forEach(function (f) {
+      var el = $(f[0]);
+      s[f[0]] = el.type === "checkbox" ? el.checked : el.value.trim();
+    });
+    Object.keys(SHOW).forEach(function (k) { s[SHOW[k]] = $(SHOW[k]).checked; });
+    s.src = $("src").value.trim();
+    return s;
+  }
+  function write(s) {
+    FIELDS.concat([["src"]]).forEach(function (f) {
+      var el = $(f[0]);
+      if (el.type === "checkbox") el.checked = s[f[0]] !== false;
+      else el.value = s[f[0]] != null ? s[f[0]] : "";
+    });
+    if (!$("position").value) $("position").value = "right";
+    if (!$("src").value) $("src").value = DEFAULT_SRC;
+    Object.keys(SHOW).forEach(function (k) { $(SHOW[k]).checked = s[SHOW[k]] !== false; });
+    syncShow();
+    syncColor();
+  }
+  function syncShow() {
+    Object.keys(SHOW).forEach(function (k) { $(k).disabled = !$(SHOW[k]).checked; });
+  }
+  function save(s) { try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) {} }
+  function load() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || "{}") || {}; } catch (e) { return {}; } }
+
+  // Atributos a emitir: solo los que difieren del valor por defecto.
+  function attrs(s) {
+    var out = [];
+    FIELDS.forEach(function (f) {
+      var v = s[f[0]], name = f[1];
+      if (f[0] === "launcher") { if (v === false) out.push([name, "false"]); return; }
+      if (SHOW[f[0]] && s[SHOW[f[0]]] === false) { out.push([name, ""]); return; }
+      if (f[0] === "phone") v = v.replace(/\D/g, "");
+      if (f[0] === "delay") v = v && Number(v) > 0 ? String(Math.round(Number(v) * 1000)) : "";
+      if (f[0] === "countries") v = v.toUpperCase().replace(/\s+/g, "");
+      if (f[0] === "currency") v = v.toUpperCase();
+      if (!v || (DEFAULTS[f[0]] && String(v).toLowerCase() === String(DEFAULTS[f[0]]).toLowerCase())) return;
+      out.push([name, v]);
+    });
+    return out;
+  }
+
+  function escAttr(v) {
+    return String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function camel(n) { return n.replace(/-([a-z])/g, function (_, c) { return c.toUpperCase(); }); }
+
+  function snippet(list, src) {
+    var pad = "        ";
+    return '<script src="' + escAttr(src) + '"' +
+      list.map(function (a) { return "\n" + pad + "data-" + a[0] + '="' + escAttr(a[1]) + '"'; }).join("") +
+      "></" + "script>";
+  }
+  function gtmSnippet(list, src) {
+    var obj = {};
+    list.forEach(function (a) { obj[camel(a[0])] = a[0] === "delay" ? Number(a[1]) : a[1]; });
+    var json = JSON.stringify(obj, null, 2).replace(/</g, "\\u003c").replace(/\n/g, "\n  ");
+    return "<script>\n  window.WALEAD_CONFIG = " + json + ";\n</" + "script>\n" +
+      '<script src="' + escAttr(src) + '"></' + "script>";
+  }
+
+  // ---------- Vista previa ----------
+  function previewDoc(list) {
+    var fake = "";
+    for (var i = 0; i < 6; i++) fake += '<div class="b" style="width:' + (55 + (i * 37) % 40) + '%"></div>';
+    return "<!doctype html><html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
+      "<title>Página de ejemplo</title><style>body{margin:0;font-family:system-ui,sans-serif;background:#f6f8fa}" +
+      ".nav{height:56px;background:#fff;border-bottom:1px solid #e5e9ec}.h{margin:36px 28px 18px;height:26px;width:52%;background:#d9e0e5;border-radius:8px}" +
+      ".b{margin:12px 28px;height:12px;background:#e3e8ec;border-radius:6px}.btn{margin:24px 28px;display:inline-block;padding:10px 18px;border-radius:8px;background:#1a2530;color:#fff;font-size:14px;text-decoration:none}</style></head>" +
+      '<body><div class="nav"></div><div class="h"></div>' + fake +
+      '<a class="btn" href="#walead">Botón “Contacto” del sitio</a>' +
+      snippet(list, new URL("widget.js", location.href).href) +
+      "<script>WaLead.open({focus:false});</" + "script></body></html>";
+  }
+
+  var lastDoc = "";
+  function renderPreview(list, force) {
+    var doc = previewDoc(list);
+    if (doc === lastDoc && !force) return;
+    lastDoc = doc;
+    $("preview").srcdoc = doc;
+  }
+
+  // ---------- Mensaje de WhatsApp ----------
+  function renderMessage(s) {
+    var tpl = s.template || "¡Hola! Quiero hacer una consulta.";
+    var data = {
+      negocio: s.name, pagina: "Planes y precios", url: "https://tusitio.com/planes",
+      email: "juan@gmail.com", phone: "+5491123456789", telefono: "+5491123456789",
+      country: "Argentina", pais: "Argentina",
+    };
+    var msg = tpl.replace(/\{([^}]+)\}/g, function (_, k) { return data[k.trim()] || ""; })
+      .replace(/[ \t]{2,}/g, " ").trim();
+    $("waText").textContent = msg;
+    $("waTop").textContent = "Chat con " + (s.name || "tu negocio") + " · ejemplo con datos de prueba";
+    var phone = s.phone.replace(/\D/g, "");
+    var link = $("waTest");
+    link.hidden = !phone;
+    if (phone) link.href = "https://wa.me/" + phone + "?text=" + encodeURIComponent(msg);
+  }
+
+  function warnings(s) {
+    var w = [];
+    var phone = s.phone.replace(/\D/g, "");
+    if (!phone) w.push("Falta el <b>WhatsApp del negocio</b>: sin ese número el widget no se muestra.");
+    else if (phone.length < 10) w.push("El WhatsApp del negocio parece corto. Incluye el código de país (Argentina: 549…).");
+    if (s.sheet && !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(s.sheet))
+      w.push("La URL de la hoja debería verse así: <code>https://script.google.com/macros/s/…/exec</code>");
+    if (/\{\s*negocio\s*\}/.test(s.greeting + s.template) && !s.name)
+      w.push("Usas <b>{negocio}</b> pero no cargaste el nombre del negocio.");
+    var box = $("warn");
+    box.hidden = !w.length;
+    box.innerHTML = w.join("<br>");
+  }
+
+  // ---------- Actualización ----------
+  var timer = null;
+  function update(immediate) {
+    syncShow();
+    var s = read();
+    save(s);
+    var list = attrs(s);
+    var src = s.src || DEFAULT_SRC;
+    $("codeHtml").textContent = snippet(list, src);
+    $("codeGtm").textContent = gtmSnippet(list, src);
+    renderMessage(s);
+    warnings(s);
+    $("title").placeholder = s.name || "¿Hablamos?"; // el widget usa el nombre como título por defecto
+    // La vista previa se recarga con una pequeña pausa para no parpadear al tipear.
+    clearTimeout(timer);
+    timer = setTimeout(function () { renderPreview(list.filter(function (a) { return a[0] !== "delay"; })); }, immediate ? 0 : 450);
+  }
+
+  // Color: el selector y el texto se mantienen sincronizados.
+  function syncColor() {
+    var t = $("colorText").value.trim();
+    if (/^#?[0-9a-f]{6}$/i.test(t)) $("color").value = (t[0] === "#" ? t : "#" + t).toLowerCase();
+  }
+  $("color").addEventListener("input", function () { $("colorText").value = $("color").value.toUpperCase(); update(); });
+  $("colorText").addEventListener("input", syncColor);
+
+  form.addEventListener("input", function () { update(); });
+  form.addEventListener("change", function () { update(); });
+
+  // Chips: insertan la variable donde está el cursor.
+  document.querySelectorAll(".chips").forEach(function (box) {
+    box.addEventListener("click", function (ev) {
+      var chip = ev.target.closest(".chip");
+      if (!chip) return;
+      var ta = $(box.getAttribute("data-for"));
+      var v = chip.getAttribute("data-v");
+      var a = ta.selectionStart != null ? ta.selectionStart : ta.value.length;
+      var b = ta.selectionEnd != null ? ta.selectionEnd : ta.value.length;
+      var before = ta.value.slice(0, a), after = ta.value.slice(b);
+      var sp = before && !/\s$/.test(before) ? " " : "";
+      ta.value = before + sp + v + after;
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = (before + sp + v).length;
+      update();
+    });
+  });
+
+  // Dispositivo de la vista previa
+  document.querySelectorAll(".tabs button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.querySelectorAll(".tabs button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      $("stage").classList.toggle("mobile", b.getAttribute("data-dev") === "mobile");
+    });
+  });
+
+  // Copiar código
+  document.querySelectorAll(".copy").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var text = $(b.getAttribute("data-copy")).textContent;
+      var done = function () {
+        b.textContent = "¡Copiado!";
+        setTimeout(function () { b.textContent = "Copiar"; }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+      } else { fallbackCopy(text); done(); }
+    });
+  });
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    ta.remove();
+  }
+
+  $("reset").addEventListener("click", function () {
+    write({ position: "right", colorText: "#25D366", launcher: true, src: DEFAULT_SRC });
+    update(true);
+  });
+
+  // ---------- Arranque ----------
+  var initial = load();
+  if (!Object.keys(initial).length) {
+    initial = {
+      name: "Pizzería Don José",
+      phone: "5491122334455",
+      greeting: "¡Hola! 👋 Somos {negocio}. Déjanos tu email y tu WhatsApp y te respondemos enseguida.",
+      template: "¡Hola {negocio}! Vi la página {pagina} y quiero hacer una consulta.",
+      colorText: "#25D366", position: "right", launcher: true, country: "AR",
+    };
+  }
+  write(initial);
+  update(true);
+})();
+</script>
+</body>
+</html>
