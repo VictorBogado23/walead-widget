@@ -170,27 +170,27 @@ Define la configuración antes de cargar el widget:
   };
   (function () {
     var s = document.createElement("script");
-    s.src = "https://cdn.jsdelivr.net/gh/VictorBogado23/walead-widget@1/widget.min.js?d=" + new Date().toISOString().slice(0, 10);
+    s.src = "https://cdn.jsdelivr.net/gh/VictorBogado23/walead-widget@main/widget.min.js?d=" + new Date().toISOString().slice(0, 13);
     document.head.appendChild(s);
   })();
 </script>
 ```
 
-El `?d=` con la fecha hace que cada navegador pida el widget de nuevo una vez por día, así
-nadie se queda con una versión vieja guardada.
+El `?d=` con la fecha y la hora hace que cada navegador pida el widget de nuevo una vez por
+hora, así nadie se queda con una versión vieja guardada.
 
 Las claves son las mismas que los atributos, en camelCase (`buttonText`, `ctaText`, …).
 
 ### Actualizaciones automáticas
 
-La dirección termina en `@1`: carga siempre la última versión 1.x, así que las mejoras
-llegan solas a todos los sitios **sin tocar GTM**. Dentro de la versión 1 nunca se quitan
-ni se renombran opciones ni datos del `dataLayer`; solo se agregan. Un cambio que obligue
-a tocar la instalación saldría como versión 2 y habría que pasar a `@2` a mano.
+La dirección termina en `@main`: carga siempre la última versión publicada, así que las
+mejoras llegan solas a todos los sitios **sin tocar GTM**. Nunca se quitan ni se renombran
+opciones ni datos del `dataLayer`; solo se agregan, para que nada de lo armado en GTM se rompa.
 
-Una versión nueva tarda hasta 12 horas en llegar a todos los sitios (lo que tarda jsDelivr
-en enterarse de la versión nueva). Con el código de GTM de arriba, los navegadores la toman
-como mucho al día siguiente. Para fijar una versión exacta, usa `@v1.2.3`.
+Al publicar se fuerza la actualización de jsDelivr
+(`https://purge.jsdelivr.net/gh/VictorBogado23/walead-widget@main/widget.min.js`), así que
+la versión nueva sale al momento. Con el código de GTM de arriba, cada navegador la toma
+como mucho en una hora. Para fijar una versión exacta, usa `@v1.2.3`.
 
 ---
 
