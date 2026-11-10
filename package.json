@@ -1,6 +1,6 @@
 {
   "name": "walead-widget",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Widget flotante de WhatsApp con captura de leads para Google Tag Manager.",
   "main": "widget.min.js",
   "scripts": {

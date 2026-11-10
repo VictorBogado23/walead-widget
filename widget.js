@@ -76,7 +76,7 @@
     countries: String(attr("countries", "") || "").toUpperCase(), // países destacados arriba (ej: "AR,UY,PY")
     delay: parseInt(attr("delay", "0"), 10) || 0, // ms para abrir solo automáticamente (0 = no)
     // La casilla de consentimiento es obligatoria siempre; este atributo solo cambia el texto.
-    consentText: attr("consent-text", "Acepto que {negocio} guarde mi email y mi WhatsApp para contactarme."),
+    consentText: attr("consent-text", "Acepto que se guarden mi email y mi WhatsApp para contactarme."),
     privacy: textAttr("privacy", ""), // línea opcional debajo del botón
     theme: String(attr("theme", "auto")).toLowerCase(), // auto | light | dark
     thanks: attr("thanks", "Te estamos llevando a WhatsApp para seguir la conversación."),
