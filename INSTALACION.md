@@ -77,7 +77,7 @@ Solo **`data-phone` es obligatorio**. El resto son opcionales.
 | `data-cta-text` | `¿Te ayudamos? 👋` | Globo de texto junto a la burbuja (si lo omites, muestra solo el ícono). |
 | `data-button-text` | `Continuar en WhatsApp` | Texto del botón de envío. |
 | `data-template` | ver abajo | Mensaje que queda escrito en WhatsApp. |
-| `data-consent-text` | `Acepto que se guarden mi email y mi WhatsApp para contactarme.` | Cambia el texto de la casilla de consentimiento. La casilla siempre aparece, sale destildada y es obligatoria: sin tildarla no se envía nada. |
+| `data-consent-text` | `Acepto que usen mi email y mi WhatsApp para contactarme.` | Cambia el texto de la casilla de consentimiento. La casilla siempre aparece, sale destildada y es obligatoria: sin tildarla no se envía nada. |
 | `data-privacy` | `Te respondemos en el día.` | Texto opcional con candado debajo del botón. Por defecto no se muestra. |
 | `data-delay` | `5000` | Milisegundos para abrir el panel solo (una vez por sesión). `0` = no abrir solo. |
 | `data-thanks` | `Te estamos llevando…` | Texto de la pantalla de confirmación. |
