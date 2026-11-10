@@ -77,7 +77,7 @@ Solo **`data-phone` es obligatorio**. El resto son opcionales.
 | `data-cta-text` | `¿Te ayudamos? 👋` | Globo de texto junto a la burbuja (si lo omites, muestra solo el ícono). |
 | `data-button-text` | `Continuar en WhatsApp` | Texto del botón de envío. |
 | `data-template` | ver abajo | Mensaje que queda escrito en WhatsApp. |
-| `data-consent-text` | `Acepto que usen mi email y mi WhatsApp para contactarme.` | Cambia el texto de la casilla de consentimiento. La casilla siempre aparece, sale destildada y es obligatoria: sin tildarla no se envía nada. |
+| `data-consent-text` | `Acepto que se use mi email y mi WhatsApp para contactarme.` | Cambia el texto de la casilla de consentimiento. La casilla siempre aparece, sale destildada y es obligatoria: sin tildarla no se envía nada. |
 | `data-privacy` | `Te respondemos en el día.` | Texto opcional con candado debajo del botón. Por defecto no se muestra. |
 | `data-delay` | `5000` | Milisegundos para abrir el panel solo (una vez por sesión). `0` = no abrir solo. |
 | `data-thanks` | `Te estamos llevando…` | Texto de la pantalla de confirmación. |
@@ -190,7 +190,7 @@ a tocar la instalación saldría como versión 2 y habría que pasar a `@2` a ma
 
 Una versión nueva tarda hasta 12 horas en llegar a todos los sitios (lo que tarda jsDelivr
 en enterarse de la versión nueva). Con el código de GTM de arriba, los navegadores la toman
-como mucho al día siguiente. Para fijar una versión exacta, usa `@v1.2.2`.
+como mucho al día siguiente. Para fijar una versión exacta, usa `@v1.2.3`.
 
 ---
 
