@@ -19,12 +19,12 @@
     <h1>WaLead Widget — Demo</h1>
     <p class="lead">Esta es una página de ejemplo. Abajo a la derecha aparece la burbuja de WhatsApp.
     Al hacer clic se abre un formulario: la persona deja su email y su WhatsApp (con selector de país),
-    se guardan en Google Sheets si configuras <code>data-sheet</code> y recién ahí se abre WhatsApp con el mensaje ya escrito.</p>
+    se publican en el dataLayer (evento <code>walead_submit</code>) y se abre WhatsApp con el mensaje ya escrito.</p>
 
     <div class="card">
       <h3>Así se instala en el sitio del cliente</h3>
       <p class="hint">Una sola línea antes de <code>&lt;/body&gt;</code>:</p>
-      <p><code>&lt;script src="widget.js" data-phone="5491122334455" data-sheet="URL_APPS_SCRIPT" data-country="AR"&gt;&lt;/script&gt;</code></p>
+      <p><code>&lt;script src="widget.js" data-phone="5491122334455" data-country="AR"&gt;&lt;/script&gt;</code></p>
     </div>
   </div>
 

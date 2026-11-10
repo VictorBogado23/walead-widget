@@ -1,7 +1,7 @@
 {
   "name": "walead-widget",
-  "version": "1.1.0",
-  "description": "Widget flotante de WhatsApp con captura de leads y guardado en Google Sheets.",
+  "version": "1.2.0",
+  "description": "Widget flotante de WhatsApp con captura de leads para Google Tag Manager.",
   "main": "widget.min.js",
   "scripts": {
     "build": "npx --yes terser@5 widget.js --compress --mangle --comments \"/^!/\" --output widget.min.js"
@@ -15,7 +15,7 @@
     "widget",
     "leads",
     "chat",
-    "google-sheets"
+    "google-tag-manager"
   ],
   "author": "Victor Bogado",
   "license": "MIT",

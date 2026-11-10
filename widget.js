@@ -2,13 +2,13 @@
  * WaLead Widget — Widget de WhatsApp con captura de leads
  * Uso mínimo:
  *   <script src="https://TU-DOMINIO/widget.js"
- *           data-phone="5491122334455"
- *           data-sheet="https://script.google.com/macros/s/XXXX/exec"></script>
+ *           data-phone="5491122334455"></script>
  *
- * Captura email + teléfono (con selector de país, formato E.164), guarda el
- * lead en Google Sheets, publica 'walead_submit' en el dataLayer (con
- * user_data para conversiones avanzadas) y abre WhatsApp.
+ * Captura email + teléfono (con selector de país, formato E.164), publica
+ * 'walead_submit' en el dataLayer (email y teléfono dentro de user_data) y
+ * abre WhatsApp. Guardar el lead (Sheet, CRM, etc.) se hace desde GTM.
  *
+ * Antes de enviar, el visitante debe aceptar la casilla de consentimiento.
  * Todos los atributos son opcionales salvo data-phone.
  * Ver el instructivo (INSTALACION.md) para la lista completa.
  *
@@ -23,7 +23,7 @@
 
   // Config global opcional (para Google Tag Manager u otros loaders donde
   // document.currentScript no está disponible). Ej:
-  //   window.WALEAD_CONFIG = { phone:"549...", sheet:".../exec", currency:"ARS" };
+  //   window.WALEAD_CONFIG = { phone:"549...", name:"Mi negocio" };
   var GCFG = (typeof window !== "undefined" && window.WALEAD_CONFIG) || null;
 
   // El <script> que nos cargó (para leer sus data-attributes).
@@ -59,14 +59,13 @@
 
   var cfg = {
     phone: String(attr("phone", "") || "").replace(/[^\d]/g, ""), // solo dígitos, con código de país
-    sheet: attr("sheet", ""), // URL del Apps Script
     color: attr("color", "#25D366"), // color de marca
     position: attr("position", "right"), // right | left
     title: attr("title", NAME || "¿Hablamos?"),
-    subtitle: attr("subtitle", ""), // línea opcional debajo del título
+    subtitle: textAttr("subtitle", "Te respondemos por WhatsApp"), // vacío = no se muestra
     greeting: textAttr(
       "greeting",
-      "¡Hola! 👋 Déjanos tu email y tu WhatsApp y seguimos la conversación por ahí."
+      "¡Hola! 👋 Dejanos tu email y tu WhatsApp y seguimos la conversación por ahí."
     ),
     buttonText: attr("button-text", "Continuar en WhatsApp"),
     ctaText: attr("cta-text", ""), // globo de texto junto a la burbuja (opcional)
@@ -75,10 +74,11 @@
     template: attr("template", "¡Hola! Quiero hacer una consulta."),
     country: String(attr("country", "") || "").toUpperCase(), // país por defecto (ISO, ej: AR)
     countries: String(attr("countries", "") || "").toUpperCase(), // países destacados arriba (ej: "AR,UY,PY")
-    currency: attr("currency", ""), // moneda enviada al Sheet (ej: ARS)
     delay: parseInt(attr("delay", "0"), 10) || 0, // ms para abrir solo automáticamente (0 = no)
-    consentText: attr("consent-text", ""), // si se define, muestra checkbox de consentimiento
-    privacy: textAttr("privacy", "Tus datos están seguros. Nada de spam."),
+    // La casilla de consentimiento es obligatoria siempre; este atributo solo cambia el texto.
+    consentText: attr("consent-text", "Acepto que {negocio} guarde mi email y mi WhatsApp para contactarme."),
+    privacy: textAttr("privacy", ""), // línea opcional debajo del botón
+    theme: String(attr("theme", "auto")).toLowerCase(), // auto | light | dark
     thanks: attr("thanks", "Te estamos llevando a WhatsApp para seguir la conversación."),
     // Selector CSS de elementos del sitio que abren el widget (ej: ".btn-contacto, a[href*='wa.me']").
     // Además, siempre funcionan [data-walead-open] y a[href="#walead"].
@@ -87,9 +87,10 @@
   };
 
   // {negocio} funciona en todos los textos visibles.
-  ["title", "subtitle", "greeting", "buttonText", "ctaText", "privacy", "thanks", "consentText"].forEach(function (k) {
+  ["title", "subtitle", "greeting", "buttonText", "ctaText", "privacy", "thanks"].forEach(function (k) {
     cfg[k] = String(cfg[k]).replace(/\{\s*negocio\s*\}/g, NAME);
   });
+  cfg.consentText = String(cfg.consentText).replace(/\{\s*negocio\s*\}/g, NAME || "este sitio");
 
   // API pública. Las llamadas hechas antes de que el widget esté listo quedan en cola.
   //   WaLead.open()                 abre (y lleva el foco al formulario)
@@ -240,16 +241,21 @@
 
   // ------- Colores derivados del color de marca -------
   var BRAND = normHex(cfg.color) ? "#" + normHex(cfg.color) : "#25D366";
-  var ON_BRAND = pickTextColor(BRAND); // texto legible sobre el color de marca
   var BRAND_DARK = shade(BRAND, -0.18);
+  var ON_BRAND = pickTextColor(BRAND, BRAND_DARK); // texto legible sobre todo el degradé
   var INK = shade(BRAND, -0.45); // versión oscura para texto/links sobre blanco
+  var INK_LIGHT = shade(BRAND, 0.55); // versión clara para texto/links sobre fondo oscuro
   var RING = hexA(BRAND, 0.22);
+  var TINT = shade(BRAND, 0.93); // fondo suave del saludo (tema claro)
+  var TINT_DARK = mix(BRAND, "#111a2b", 0.14); // fondo suave del saludo (tema oscuro)
 
   // ------- Estilos (dentro de Shadow DOM: no chocan con el sitio) -------
   var css = [
     ":host{all:initial}",
     ".wl{--wl-brand:" + BRAND + ";--wl-brand-d:" + BRAND_DARK + ";--wl-on:" + ON_BRAND + ";--wl-ink:" + INK + ";--wl-ring:" + RING + ";",
-    "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.4;color:#111b21;-webkit-font-smoothing:antialiased;}",
+    "--wl-bg:#fff;--wl-text:#111b21;--wl-soft:#3b4a54;--wl-muted:#5f6f7a;--wl-line:#e9edef;--wl-field:#84929b;--wl-hover:#f0f2f5;--wl-chat:" + TINT + ";--wl-bubble:#fff;--wl-input:#f7f8fa;--wl-err:#d93036;--wl-edge:rgba(0,0,0,0);",
+    "font-family:__WL_FONT__;font-size:14px;line-height:1.4;color:var(--wl-text);-webkit-font-smoothing:antialiased;}",
+    ".wl.wl-dark{color-scheme:dark;--wl-ink:" + INK_LIGHT + ";--wl-bg:#111a2b;--wl-text:#eaf0fb;--wl-soft:#c3cede;--wl-muted:#9aa8bf;--wl-line:#26344d;--wl-field:#71819c;--wl-hover:#1b2740;--wl-chat:" + TINT_DARK + ";--wl-bubble:#1b2740;--wl-input:#0d1524;--wl-err:#ff8589;--wl-edge:rgba(255,255,255,.1)}",
     ".wl *,.wl *::before,.wl *::after{box-sizing:border-box}",
     ".wl button,.wl input{font-family:inherit}",
     "[hidden]{display:none!important}",
@@ -270,99 +276,105 @@
     ".wl-seen .wl-badge,.wl-open .wl-badge{display:none}",
 
     // Globo CTA
-    ".wl-cta{position:fixed;bottom:31px;z-index:2147483000;max-width:240px;background:#fff;color:#111b21;border:0;border-radius:18px;padding:9px 16px;font-size:14px;font-weight:600;box-shadow:0 4px 18px rgba(0,0,0,.14);cursor:pointer;opacity:0;transform:translateY(6px);transition:opacity .3s ease,transform .3s ease;pointer-events:none}",
+    ".wl-cta{position:fixed;bottom:31px;z-index:2147483000;max-width:240px;background:var(--wl-bg);color:var(--wl-text);border:0;border-radius:18px;padding:9px 16px;font-size:14px;font-weight:600;box-shadow:0 4px 18px rgba(0,0,0,.14);cursor:pointer;opacity:0;transform:translateY(6px);transition:opacity .3s ease,transform .3s ease;pointer-events:none}",
     ".wl-right .wl-cta{right:92px}.wl-left .wl-cta{left:92px}",
     ".wl-cta.wl-show{opacity:1;transform:none;pointer-events:auto}",
     ".wl-open .wl-cta{opacity:0;pointer-events:none}",
 
     // Panel
-    ".wl-panel{position:fixed;bottom:96px;z-index:2147483001;width:370px;max-width:calc(100vw - 32px);max-height:calc(100vh - 116px);display:flex;flex-direction:column;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.08);opacity:0;visibility:hidden;transform:translateY(16px) scale(.97);transition:opacity .22s ease,transform .25s cubic-bezier(.2,.9,.3,1.15),visibility 0s linear .25s}",
+    ".wl-panel{position:fixed;bottom:96px;z-index:2147483001;width:370px;max-width:calc(100vw - 32px);max-height:calc(100vh - 116px);display:flex;flex-direction:column;background:var(--wl-bg);border-radius:22px;overflow:hidden;box-shadow:0 0 0 1px var(--wl-edge),0 24px 60px -12px rgba(16,24,40,.28),0 4px 14px rgba(16,24,40,.08);opacity:0;visibility:hidden;transform:translateY(12px) scale(.96);transition:opacity .28s ease,transform .38s cubic-bezier(.16,1,.3,1),visibility 0s linear .38s}",
     ".wl-right .wl-panel{right:20px;transform-origin:bottom right}.wl-left .wl-panel{left:20px;transform-origin:bottom left}",
     ".wl-open .wl-panel{opacity:1;visibility:visible;transform:none;transition-delay:0s}",
 
-    ".wl-head{display:flex;align-items:center;gap:12px;padding:16px 12px 16px 18px;background:linear-gradient(135deg,var(--wl-brand),var(--wl-brand-d));color:var(--wl-on);flex:0 0 auto}",
+    ".wl-head{display:flex;align-items:center;gap:12px;padding:14px 8px 14px 18px;background:linear-gradient(135deg,var(--wl-brand),var(--wl-brand-d));color:var(--wl-on);flex:0 0 auto}",
     ".wl-avatar{position:relative;flex:0 0 44px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22);display:grid;place-items:center}",
-    ".wl-avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}",
+    ".wl-avatar.wl-logo{background:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35)}",
+    ".wl-avatar img{width:100%;height:100%;border-radius:50%;object-fit:contain;padding:4px}",
+    ".wl-avatar .wl-dot{position:absolute;right:-2px;bottom:-2px;width:18px;height:18px;border-radius:50%;background:#25D366;color:#fff;display:grid;place-items:center;box-shadow:0 0 0 2px var(--wl-brand-d)}",
+    ".wl-avatar .wl-dot svg{width:11px;height:11px}",
     ".wl-avatar svg{width:26px;height:26px}",
     ".wl-who{flex:1;min-width:0}",
     ".wl-title{font-size:16px;font-weight:700;line-height:1.25;margin:0}",
-    ".wl-sub{font-size:12.5px;opacity:.9;margin-top:2px}",
-    ".wl-x{flex:0 0 auto;width:36px;height:36px;border-radius:50%;border:0;padding:0;background:transparent;color:inherit;cursor:pointer;display:grid;place-items:center;opacity:.85;transition:background .15s,opacity .15s}",
+    ".wl-sub{font-size:13px;opacity:.88;margin-top:2px}",
+    ".wl-x{flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:0;padding:0;background:transparent;color:inherit;cursor:pointer;display:grid;place-items:center;opacity:.85;transition:background .15s,opacity .15s}",
     ".wl-x:hover{background:rgba(127,127,127,.22);opacity:1}",
     ".wl-x:focus-visible{outline:2px solid currentColor;outline-offset:1px}",
     ".wl-x svg{width:20px;height:20px}",
 
     ".wl-content{overflow-y:auto;flex:1 1 auto;overscroll-behavior:contain}",
-    ".wl-chat{background:#efeae2;padding:18px 16px 20px 24px}",
-    ".wl-msg{position:relative;max-width:90%;background:#fff;border-radius:0 12px 12px 12px;padding:9px 12px 20px;box-shadow:0 1px .5px rgba(11,20,26,.13);font-size:14.5px;color:#111b21;animation:wl-in .35s ease .15s both}",
-    ".wl-msg::before{content:'';position:absolute;top:0;left:-8px;border-style:solid;border-width:0 8px 10px 0;border-color:transparent #fff transparent transparent}",
+    ".wl-chat{background:var(--wl-chat);padding:16px 18px 16px 26px}",
+    ".wl-msg{position:relative;max-width:90%;background:var(--wl-bubble);border-radius:4px 16px 16px 16px;padding:10px 14px 22px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 2px 8px rgba(16,24,40,.05);font-size:14px;line-height:1.45;color:var(--wl-text);animation:wl-in .45s cubic-bezier(.16,1,.3,1) .18s both}",
     ".wl-msg p{margin:0}",
-    ".wl-time{position:absolute;right:10px;bottom:4px;font-size:11px;color:#667781}",
-    "@keyframes wl-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}",
+    ".wl-time{position:absolute;right:10px;bottom:4px;font-size:12px;color:var(--wl-muted)}",
+    "@keyframes wl-in{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}",
 
     // Formulario
-    ".wl-form{padding:18px 18px 16px}",
+    ".wl-form{padding:18px 18px 20px}",
     ".wl-field{margin-bottom:14px;position:relative}",
-    ".wl-field>label{display:block;font-size:13px;font-weight:600;color:#3b4a54;margin-bottom:6px}",
-    ".wl-control{display:flex;align-items:center;height:48px;border:1.5px solid #d1d7db;border-radius:12px;background:#fff;transition:border-color .15s,box-shadow .15s}",
-    ".wl-control:hover{border-color:#aebac1}",
-    ".wl-control:focus-within{border-color:var(--wl-brand);box-shadow:0 0 0 4px var(--wl-ring)}",
-    ".wl-invalid .wl-control{border-color:#e5484d}",
+    ".wl-field>label{display:block;font-size:13px;font-weight:600;color:var(--wl-soft);margin-bottom:6px}",
+    ".wl-control{display:flex;align-items:center;height:48px;border:1px solid var(--wl-field);border-radius:14px;background:var(--wl-input);transition:border-color .15s,box-shadow .15s,background .15s}",
+    ".wl-control:hover{border-color:var(--wl-soft)}",
+    ".wl-control:focus-within{border-color:var(--wl-brand);background:var(--wl-bg);box-shadow:0 0 0 4px var(--wl-ring)}",
+    ".wl-invalid .wl-control{border-color:var(--wl-err)}",
     ".wl-invalid .wl-control:focus-within{box-shadow:0 0 0 4px rgba(229,72,77,.18)}",
-    ".wl-ic{display:grid;place-items:center;width:42px;color:#8696a0;flex:0 0 auto}",
+    ".wl-ic{display:grid;place-items:center;width:42px;color:var(--wl-muted);flex:0 0 auto}",
     ".wl-ic svg{width:18px;height:18px}",
-    ".wl-control input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;font-size:16px;color:#111b21;padding:0 14px 0 0;margin:0;border-radius:0 12px 12px 0}",
-    ".wl-control input::placeholder{color:#a3afb7}",
+    ".wl-control input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;font-size:16px;color:var(--wl-text);padding:0 14px 0 0;margin:0;border-radius:0 14px 14px 0}",
+    ".wl-control input::placeholder{color:var(--wl-muted);opacity:1}",
     ".wl-ok{display:none;width:20px;height:20px;margin-right:12px;color:var(--wl-ink);flex:0 0 auto}",
     ".wl-valid .wl-ok{display:block}",
 
-    ".wl-cc{display:flex;align-items:center;gap:6px;height:100%;padding:0 10px 0 12px;margin:0;border:0;border-right:1.5px solid #e9edef;background:transparent;cursor:pointer;color:#111b21;font-size:15px;border-radius:11px 0 0 11px;flex:0 0 auto}",
-    ".wl-cc:hover{background:#f5f6f6}",
+    ".wl-cc{display:flex;align-items:center;gap:6px;height:100%;padding:0 10px 0 12px;margin:0;border:0;border-right:1px solid var(--wl-line);background:transparent;cursor:pointer;color:var(--wl-text);font-size:14px;border-radius:13px 0 0 13px;flex:0 0 auto}",
+    ".wl-cc:hover{background:var(--wl-hover)}",
     ".wl-cc:focus-visible{outline:2px solid var(--wl-brand);outline-offset:-3px}",
-    ".wl-flag{width:22px;height:16px;border-radius:3px;object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.08);background:#e9edef;flex:0 0 auto}",
-    ".wl-cc .wl-chev{width:14px;height:14px;color:#667781;transition:transform .15s}",
+    ".wl-flag{width:22px;height:16px;border-radius:3px;object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.08);background:var(--wl-line);flex:0 0 auto}",
+    ".wl-cc .wl-chev{width:14px;height:14px;color:var(--wl-muted);transition:transform .15s}",
     ".wl-cc[aria-expanded=true] .wl-chev{transform:rotate(180deg)}",
     ".wl-dial{font-variant-numeric:tabular-nums}",
     ".wl-phone input{padding-left:12px}",
 
     // Selector de país: capa sobre el panel, debajo del encabezado.
-    ".wl-pop{position:absolute;left:10px;right:10px;top:84px;bottom:10px;z-index:5;display:flex;flex-direction:column;background:#fff;border:1px solid #e9edef;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.18);overflow:hidden;animation:wl-in .15s ease}",
-    ".wl-search{padding:8px;border-bottom:1px solid #f0f2f5;flex:0 0 auto}",
-    ".wl-search input{width:100%;height:40px;border:1.5px solid #e9edef;border-radius:8px;padding:0 12px;font-size:16px;outline:0;margin:0;color:#111b21}",
+    ".wl-pop{position:absolute;left:10px;right:10px;top:84px;bottom:10px;z-index:5;display:flex;flex-direction:column;background:var(--wl-bg);border:1px solid var(--wl-line);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.18);overflow:hidden;animation:wl-in .15s ease}",
+    ".wl-search{padding:8px;border-bottom:1px solid var(--wl-line);flex:0 0 auto}",
+    ".wl-search input{width:100%;height:44px;border:1.5px solid var(--wl-field);border-radius:8px;padding:0 12px;font-size:16px;outline:0;margin:0;color:var(--wl-text);background:transparent}",
     ".wl-search input:focus{border-color:var(--wl-brand)}",
     ".wl-list{list-style:none;margin:0;padding:4px;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}",
-    ".wl-list li{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:14px}",
+    ".wl-list li{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:14px}",
     ".wl-list li .wl-cn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
-    ".wl-list li .wl-cd{color:#667781;font-variant-numeric:tabular-nums}",
-    ".wl-list li.wl-active{background:#f0f2f5}",
+    ".wl-list li .wl-cd{color:var(--wl-muted);font-variant-numeric:tabular-nums}",
+    ".wl-list li.wl-active{background:var(--wl-hover)}",
     ".wl-list li[aria-selected=true]{font-weight:600}",
-    ".wl-list li.wl-sep{height:1px;padding:0;margin:4px 6px;background:#e9edef;pointer-events:none}",
-    ".wl-empty{padding:16px;color:#667781;text-align:center;font-size:13px}",
+    ".wl-list li.wl-sep{height:1px;min-height:0;padding:0;margin:4px 6px;background:var(--wl-line);pointer-events:none}",
+    ".wl-empty{padding:16px;color:var(--wl-muted);text-align:center;font-size:13px}",
 
-    ".wl-err{display:none;align-items:flex-start;gap:5px;font-size:12.5px;color:#d93036;margin-top:6px}",
+    ".wl-err{display:none;align-items:flex-start;gap:4px;font-size:13px;color:var(--wl-err);margin-top:4px}",
     ".wl-err svg{width:14px;height:14px;flex:0 0 auto;margin-top:1px}",
     ".wl-invalid .wl-err{display:flex}",
-    ".wl-suggest{margin-top:6px;font-size:12.5px;color:#3b4a54}",
-    ".wl-suggest button{border:0;background:none;padding:0;margin:0;color:var(--wl-ink);font-size:inherit;font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:2px}",
+    ".wl-suggest{margin-top:4px;font-size:13px;color:var(--wl-soft)}",
+    ".wl-suggest button{border:0;background:none;padding:12px 0;margin:-12px 0;color:var(--wl-ink);font-size:inherit;font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:2px}",
 
-    ".wl-consent{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#3b4a54;margin:2px 0 16px;cursor:pointer;line-height:1.4}",
-    ".wl-consent input{width:18px;height:18px;margin:0;accent-color:var(--wl-brand);flex:0 0 auto;cursor:pointer}",
-    ".wl-consent.wl-invalid{color:#d93036}",
+    ".wl-field>.wl-consent{display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:4px 0;font-size:13px;font-weight:400;color:var(--wl-soft);margin:0;cursor:pointer;line-height:1.4}",
+    ".wl-consent input{-webkit-appearance:none;appearance:none;width:20px;height:20px;margin:0;flex:0 0 auto;cursor:pointer;border:1px solid var(--wl-field);border-radius:6px;background:var(--wl-input);display:grid;place-items:center;transition:background .15s,border-color .15s}",
+    ".wl-consent input::after{content:'';width:5px;height:10px;border:solid var(--wl-on);border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg) scale(0);transition:transform .15s cubic-bezier(.16,1,.3,1)}",
+    ".wl-consent input:checked{background:var(--wl-brand);border-color:var(--wl-brand)}",
+    ".wl-consent input:checked::after{transform:translateY(-1px) rotate(45deg) scale(1)}",
+    ".wl-invalid .wl-consent input{border-color:var(--wl-err)}",
+    ".wl-consent input:focus-visible{outline:3px solid var(--wl-ring);outline-offset:2px}",
 
-    ".wl-submit{width:100%;height:50px;border:0;border-radius:12px;background:var(--wl-brand);color:var(--wl-on);font-size:15.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 14px var(--wl-ring);transition:filter .15s,transform .1s;text-decoration:none}",
-    ".wl-submit:hover{filter:brightness(.95)}",
+    ".wl-submit{width:100%;height:52px;border:0;border-radius:999px;background:var(--wl-brand);color:var(--wl-on);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 18px -4px var(--wl-ring),0 2px 6px var(--wl-ring);transition:filter .15s,transform .15s,box-shadow .15s;text-decoration:none}",
+    ".wl-submit:hover{filter:brightness(1.06);transform:translateY(-1px)}",
     ".wl-submit:active{transform:scale(.985)}",
     ".wl-submit:focus-visible{outline:3px solid var(--wl-ring);outline-offset:2px}",
     ".wl-submit svg{width:22px;height:22px}",
-    ".wl-privacy{display:flex;align-items:center;justify-content:center;gap:6px;margin:12px 0 0;font-size:12px;color:#667781;text-align:center}",
+    ".wl-privacy{display:flex;align-items:center;justify-content:center;gap:6px;margin:12px 0 0;font-size:12px;color:var(--wl-muted);text-align:center}",
     ".wl-privacy svg{width:13px;height:13px;flex:0 0 auto}",
 
     // Pantalla de éxito
     ".wl-done{padding:32px 24px 26px;text-align:center}",
     ".wl-check{width:64px;height:64px;border-radius:50%;margin:0 auto 14px;background:var(--wl-ring);color:var(--wl-ink);display:grid;place-items:center;animation:wl-pop .45s cubic-bezier(.2,.9,.3,1.4)}",
     ".wl-check svg{width:32px;height:32px}",
-    ".wl-done h4{margin:0 0 6px;font-size:18px;color:#111b21}",
-    ".wl-done p{margin:0 0 20px;color:#54656f;font-size:14px}",
+    ".wl-done h4{margin:0 0 6px;font-size:16px;color:var(--wl-text)}",
+    ".wl-done p{margin:0 0 20px;color:var(--wl-muted);font-size:14px}",
     "@keyframes wl-pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}",
 
     ".wl-backdrop{display:none}",
@@ -418,8 +430,6 @@
 
   // ------- Construcción del DOM -------
   function build() {
-    getAttribution(); // guarda el clic del anuncio aunque el lead llegue en otra página
-
     var host = document.createElement("div");
     host.id = "walead-widget";
     document.body.appendChild(host);
@@ -429,13 +439,13 @@
     var hhmm = ("0" + now.getHours()).slice(-2) + ":" + ("0" + now.getMinutes()).slice(-2);
 
     var html =
-      "<style>" + css + "</style>" +
+      "<style>" + css.replace("__WL_FONT__", siteFont()) + "</style>" +
       '<div class="wl wl-' + (cfg.position === "left" ? "left" : "right") + (cfg.launcher ? "" : " wl-nolauncher") + '">' +
       '<div class="wl-backdrop"></div>' +
       '<div class="wl-panel" role="dialog" aria-modal="false" aria-labelledby="wl-title" aria-hidden="true">' +
         '<div class="wl-head">' +
-          '<div class="wl-avatar">' +
-            (cfg.avatar ? '<img src="' + escapeHtml(cfg.avatar) + '" alt="">' : waIcon) +
+          '<div class="wl-avatar' + (cfg.avatar ? " wl-logo" : "") + '">' +
+            (cfg.avatar ? '<img src="' + escapeHtml(cfg.avatar) + '" alt=""><span class="wl-dot">' + waIcon + "</span>" : waIcon) +
           "</div>" +
           '<div class="wl-who"><h3 class="wl-title" id="wl-title">' + escapeHtml(cfg.title) + "</h3>" +
             (cfg.subtitle ? '<div class="wl-sub">' + escapeHtml(cfg.subtitle) + "</div>" : "") +
@@ -467,9 +477,10 @@
               "</div>" +
               '<div class="wl-err" id="wl-phone-err" role="alert">' + alertIcon + "<span></span></div>" +
             "</div>" +
-            (cfg.consentText
-              ? '<label class="wl-consent"><input type="checkbox" class="wl-consent-chk"><span>' + escapeHtml(cfg.consentText) + "</span></label>"
-              : "") +
+            '<div class="wl-field" data-f="consent">' +
+              '<label class="wl-consent"><input type="checkbox" id="wl-consent" name="consentimiento" aria-describedby="wl-consent-err" required><span>' + escapeHtml(cfg.consentText) + "</span></label>" +
+              '<div class="wl-err" id="wl-consent-err" role="alert">' + alertIcon + "<span></span></div>" +
+            "</div>" +
             '<button class="wl-submit" type="submit">' + waIcon + "<span>" + escapeHtml(cfg.buttonText) + "</span></button>" +
             (cfg.privacy ? '<p class="wl-privacy">' + lockIcon + "<span>" + escapeHtml(cfg.privacy) + "</span></p>" : "") +
           "</form>" +
@@ -509,9 +520,25 @@
     var pop = $(".wl-pop");
     var search = $(".wl-search input");
     var list = $(".wl-list");
-    var consentChk = $(".wl-consent-chk");
+    var consentField = $('[data-f="consent"]');
+    var consentChk = $("#wl-consent");
 
     if (store("sessionStorage", "walead_seen")) root.classList.add("wl-seen");
+
+    // El tema se revisa también al abrir: el sitio pudo cambiar entre claro y oscuro.
+    function applyTheme() {
+      root.classList.toggle("wl-dark", cfg.theme === "dark" || (cfg.theme !== "light" && siteIsDark()));
+    }
+    applyTheme();
+
+    // En celular, el panel se apoya sobre el teclado para que el botón siga a la vista.
+    function fitKeyboard() {
+      var vv = window.visualViewport;
+      var kb = vv && window.innerWidth <= 480 ? window.innerHeight - vv.height - vv.offsetTop : 0;
+      panel.style.bottom = kb > 0 ? kb + "px" : "";
+      panel.style.maxHeight = kb > 0 ? vv.height - 12 + "px" : "";
+    }
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", fitKeyboard);
 
     // ------- Abrir / cerrar -------
     var returnFocus = null; // elemento que abrió el panel (para devolverle el foco al cerrar)
@@ -521,6 +548,7 @@
       if (open === isOpen()) return;
       if (open) {
         track({ event: "walead_open", walead_origen: origen || "api" });
+        applyTheme();
       }
       root.classList.toggle("wl-open", open);
       panel.setAttribute("aria-hidden", open ? "false" : "true");
@@ -592,8 +620,8 @@
       current = c;
       var img = ccBtn.querySelector(".wl-flag");
       img.src = flagUrl(c.iso);
-      img.onerror = function () { img.style.visibility = "hidden"; };
-      img.onload = function () { img.style.visibility = ""; };
+      img.onerror = function () { img.style.display = "none"; };
+      img.onload = function () { img.style.display = ""; };
       ccBtn.querySelector(".wl-dial").textContent = "+" + c.dial;
       ccBtn.setAttribute("aria-label", "País: " + c.name + " +" + c.dial + ". Cambiar país");
       phoneInput.placeholder = c.example;
@@ -635,6 +663,7 @@
     }
 
     function openPop() {
+      pop.style.top = $(".wl-head").offsetHeight + 10 + "px";
       pop.hidden = false;
       ccBtn.setAttribute("aria-expanded", "true");
       search.value = "";
@@ -662,6 +691,10 @@
       else if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); closePop(true); }
       else if (ev.key === "Tab") closePop();
     });
+    // Si una bandera no carga, se oculta y queda solo el nombre y el código.
+    list.addEventListener("error", function (ev) {
+      if (ev.target.tagName === "IMG") ev.target.style.display = "none";
+    }, true);
     list.addEventListener("click", function (ev) {
       var li = ev.target.closest('[role="option"]');
       if (li) choose(parseInt(li.getAttribute("data-i"), 10));
@@ -690,7 +723,7 @@
 
     function validateEmail(silent) {
       var v = emailInput.value.trim();
-      var msg = !v ? "Ingresa tu email" : !EMAIL_RE.test(v) ? "Revisa el email, parece incompleto" : "";
+      var msg = !v ? "Ingresá tu email" : !EMAIL_RE.test(v) ? "Revisá el email, parece incompleto" : "";
       var sug = !msg ? emailSuggestion(v) : "";
       suggestBox.hidden = !sug;
       if (sug) {
@@ -707,9 +740,15 @@
 
     function validatePhone(silent) {
       var v = phoneInput.value.trim();
-      var msg = !v ? "Ingresa tu número de WhatsApp" : !toE164(v, current) ? "Número inválido para " + current.name + ". Ej: " + current.example : "";
+      var msg = !v ? "Ingresá tu número de WhatsApp" : !toE164(v, current) ? "Número inválido para " + current.name + ". Ej: " + current.example : "";
       if (!silent) setState(phoneField, msg, !msg);
       return !msg;
+    }
+
+    function validateConsent() {
+      var ok = consentChk.checked;
+      setState(consentField, ok ? "" : "Para continuar, aceptá el uso de tus datos");
+      return ok;
     }
 
     // Si pegan el número con +código, cambiamos el país y dejamos solo el número local.
@@ -739,11 +778,7 @@
       if (clean !== phoneInput.value) phoneInput.value = clean;
       if (phoneField.classList.contains("wl-invalid") || phoneField.classList.contains("wl-valid")) validatePhone();
     });
-    if (consentChk) {
-      consentChk.addEventListener("change", function () {
-        consentChk.parentNode.classList.toggle("wl-invalid", !consentChk.checked);
-      });
-    }
+    consentChk.addEventListener("change", function () { validateConsent(); });
 
     // ------- Prellenado (si el visitante ya dejó sus datos antes) -------
     var saved = null;
@@ -763,11 +798,7 @@
 
       var okEmail = validateEmail();
       var okPhone = validatePhone();
-      var okConsent = true;
-      if (consentChk && !consentChk.checked) {
-        okConsent = false;
-        consentChk.parentNode.classList.add("wl-invalid");
-      }
+      var okConsent = validateConsent();
       if (!okEmail) return emailInput.focus();
       if (!okPhone) return phoneInput.focus();
       if (!okConsent) return consentChk.focus();
@@ -779,7 +810,6 @@
         email: email,
         telefono: telefono,
         pais: current.iso,
-        codigo_pais: "+" + current.dial,
       };
 
       pushLead(data);
@@ -816,12 +846,11 @@
   }
 
   // ------- Envío del lead -------
-  // 1) Lo guarda directo en la Google Sheet (Apps Script de data-sheet).
-  // 2) Publica el evento 'walead_submit' en el dataLayer para medir conversiones
-  //    en GTM / GA4 / Ads, con user_data listo para conversiones avanzadas.
+  // Publica el evento 'walead_submit' en el dataLayer. Desde GTM se manda a
+  // GA4 / Google Ads / Meta / Sheet. Email y teléfono van solo en user_data.
   function pushLead(data) {
     // Candado anti-duplicado: si este navegador ya envió este lead_id, no se
-    // guarda ni se cuenta otra conversión (el visitante igual va a WhatsApp).
+    // cuenta otra conversión (el visitante igual va a WhatsApp).
     var previo = null;
     try { previo = JSON.parse(store("localStorage", "walead_lead") || "null"); } catch (e) {}
     window.__waLeadSent = window.__waLeadSent || {};
@@ -831,19 +860,13 @@
     }
     window.__waLeadSent[data.lead_id] = true;
 
-    saveLead(data);
-
     track({
-      event: "walead_submit",   // <- activador en GTM
+      event: "walead_submit",       // <- activador en GTM
       walead_lead_id: data.lead_id, // ID de transacción / event_id: evita contar doble
-      walead_email: data.email,
-      walead_telefono: data.telefono, // E.164: +5491122334455
-      walead_pais: data.pais,
-      walead_moneda: cfg.currency || "",
       // Formato que esperan GA4 / Google Ads para datos proporcionados por el usuario.
       user_data: {
         email: data.email,
-        phone_number: data.telefono,
+        phone_number: data.telefono, // E.164: +5491122334455
         address: { country: data.pais },
       },
     });
@@ -872,81 +895,26 @@
     return "wl_" + hex(h2) + hex(h1);
   }
 
-  // ------- Guardado en Google Sheets -------
-  function saveLead(data) {
-    if (!cfg.sheet) {
-      console.warn("[WaLead] Falta data-sheet: el lead no se guardó en la hoja.");
-      return;
-    }
-    var payload = {};
-    for (var k in data) payload[k] = data[k];
-    if (cfg.currency) payload._moneda = cfg.currency;
-    payload._page_url = location.href;
-    payload._page_title = document.title;
-    payload._referrer = document.referrer || "";
-    var attr = getAttribution();
-    for (var a in attr) if (attr[a]) payload[a] = attr[a];
-
-    try {
-      var body = JSON.stringify(payload);
-      // sendBeacon sobrevive aunque la pestaña pierda el foco al abrir WhatsApp.
-      // text/plain evita el preflight CORS con Apps Script.
-      var sent =
-        navigator.sendBeacon &&
-        navigator.sendBeacon(cfg.sheet, new Blob([body], { type: "text/plain;charset=utf-8" }));
-      if (!sent) {
-        fetch(cfg.sheet, {
-          method: "POST",
-          mode: "no-cors",
-          keepalive: true,
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: body,
-        }).catch(function () {});
-      }
-    } catch (e) {
-      /* silencioso: nunca bloquear el envío a WhatsApp */
-    }
+  // ------- Integración visual con el sitio -------
+  var FONT_STACK = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  // Usa la fuente del sitio; las fuentes de la página también valen dentro del Shadow DOM.
+  function siteFont() {
+    var f = "";
+    try { f = getComputedStyle(document.body).fontFamily || ""; } catch (e) {}
+    f = f.replace(/[<>{};]/g, "").trim();
+    return f ? f + "," + FONT_STACK : FONT_STACK;
   }
-
-  // ------- Atribución de anuncios -------
-  var ATTR_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "gbraid", "wbraid", "fbclid"];
-  var ATTR_MS = 90 * 864e5; // 90 días: el plazo de Google Ads para importar conversiones offline
-
-  function cookie(name) {
-    try {
-      var m = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
-      return m ? decodeURIComponent(m[1]) : "";
-    } catch (e) {
-      return "";
+  // Mira el fondo real del sitio: body y, si es transparente, html.
+  function siteIsDark() {
+    var els = [document.body, document.documentElement];
+    for (var i = 0; i < els.length; i++) {
+      var m = /rgba?\(([^)]+)\)/.exec(getComputedStyle(els[i]).backgroundColor || "");
+      if (!m) continue;
+      var p = m[1].split(/[\s,/]+/).map(parseFloat);
+      if (p.length > 3 && p[3] === 0) continue;
+      return 0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2] < 110;
     }
-  }
-
-  // Orden: URL actual > clic guardado por el widget > localStorage (GTM) > cookies.
-  function getAttribution() {
-    var out = {};
-    try {
-      var p = new URLSearchParams(location.search);
-      ATTR_KEYS.forEach(function (k) {
-        var v = p.get(k);
-        if (v) out[k] = v;
-      });
-    } catch (e) {}
-
-    if (Object.keys(out).length) {
-      store("localStorage", "walead_attr", JSON.stringify({ ts: Date.now(), data: out }));
-    } else {
-      var saved = null;
-      try { saved = JSON.parse(store("localStorage", "walead_attr") || "null"); } catch (e) {}
-      if (saved && saved.data && Date.now() - saved.ts < ATTR_MS) out = saved.data;
-    }
-
-    // _gcl_aw tiene el formato GCL.<fecha>.<gclid>
-    out.gclid = out.gclid || store("localStorage", "gclid") || cookie("_gcl_aw").split(".").slice(2).join(".");
-    out.gbraid = out.gbraid || store("localStorage", "gbraid") || "";
-    out.wbraid = out.wbraid || store("localStorage", "wbraid") || "";
-    out.fbp = store("localStorage", "fbp") || cookie("_fbp");
-    out.fbc = store("localStorage", "fbc") || cookie("_fbc") || (out.fbclid ? "fb.1." + Date.now() + "." + out.fbclid : "");
-    return out;
+    return false;
   }
 
   // ------- Helpers -------
@@ -984,15 +952,36 @@
       return ("0" + v.toString(16)).slice(-2);
     }).join("");
   }
+  // Mezcla a con b: t = proporción de a.
+  function mix(a, b, t) {
+    var x = rgb(a), y = rgb(b);
+    return "#" + x.map(function (v, i) {
+      return ("0" + Math.round(v * t + y[i] * (1 - t)).toString(16)).slice(-2);
+    }).join("");
+  }
   function hexA(hex, a) {
     return "rgba(" + rgb(hex).join(",") + "," + a + ")";
   }
 
-  // Elige negro o blanco según luminancia del color de marca (contraste legible).
-  function pickTextColor(hex) {
-    var c = rgb(hex);
-    var lum = 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
-    return lum > 160 ? "#111111" : "#ffffff";
+  // Luminancia relativa y contraste según WCAG 2.
+  function luminance(hex) {
+    var c = rgb(hex).map(function (v) {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+  function contrast(a, b) {
+    var x = luminance(a), y = luminance(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  }
+  // Elige negro o blanco: el que mejor se lee en el peor punto de los fondos dados.
+  function pickTextColor() {
+    var bgs = Array.prototype.slice.call(arguments);
+    function worst(ink) {
+      return Math.min.apply(null, bgs.map(function (bg) { return contrast(ink, bg); }));
+    }
+    return worst("#ffffff") >= worst("#111111") ? "#ffffff" : "#111111";
   }
 
   // ------- Arranque cuando el DOM está listo -------

@@ -1,8 +1,11 @@
 # WaLead Widget — Guía de instalación
 
 Widget flotante de WhatsApp que **captura el email y el WhatsApp del visitante** (con selector
-de país y formato internacional), los **guarda en Google Sheets** y recién entonces abre WhatsApp con el
+de país y formato internacional), los **publica en el `dataLayer`** y recién entonces abre WhatsApp con el
 mensaje ya escrito. Se instala con **una sola línea** y se personaliza con atributos.
+
+El widget **no guarda datos por su cuenta**: guardar el lead (Google Sheets, CRM) y medir
+conversiones se arma en Google Tag Manager a partir del evento `walead_submit`.
 
 Pensado para que lo **comercialices con tus clientes**: alojas un único `widget.js` y a cada
 cliente le das su línea de instalación con su configuración.
@@ -15,7 +18,6 @@ cliente le das su línea de instalación con su configuración.
 |---|---|
 | `widget.min.js` | El widget, reducido. Lo alojas **tú** una sola vez (tu hosting o CDN). |
 | `widget.js` | Código fuente. Después de cambiarlo, ejecuta `npm run build` para regenerar `widget.min.js`. |
-| `Codigo-Apps-Script.gs` | Código que va en la Google Sheet de cada cliente para recibir los leads. |
 | `demo.html` | Página de ejemplo / muestra comercial. |
 | `INSTALACION.md` | Esta guía. |
 
@@ -33,34 +35,25 @@ cliente le das su línea de instalación con su configuración.
 
 ## Alta de un cliente nuevo
 
-### Paso 1 — Crear la hoja de leads (Google Sheets)
-
-1. Entra a **sheets.new** con la cuenta de Google del cliente (o la tuya).
-2. Menú **Extensiones ▸ Apps Script**.
-3. Borra todo y pega el contenido de `Codigo-Apps-Script.gs`.
-4. **Implementar ▸ Nueva implementación**:
-   - Tipo: **Aplicación web**
-   - Ejecutar como: **Yo**
-   - Quién tiene acceso: **Cualquier persona**
-5. Copia la **URL de la aplicación web** (termina en `/exec`).
-
-> Esa URL es el "buzón" donde caen los leads. Es la que va en `data-sheet`.
-
-### Paso 2 — Pegar el widget en el sitio del cliente
+### Paso 1 — Pegar el widget en el sitio del cliente
 
 Antes de `</body>` (o en el `<head>`), una línea:
 
 ```html
 <script src="https://tudominio.com/widget.min.js"
         data-phone="5491122334455"
-        data-sheet="https://script.google.com/macros/s/XXXX/exec"
         data-country="AR"
         data-color="#25D366"
         data-cta-text="Escríbenos"></script>
 ```
 
-Listo. Aparece la burbuja, el visitante deja sus datos, se guardan en la hoja y se abre
-WhatsApp con el mensaje armado.
+Aparece la burbuja, el visitante deja sus datos, se publica `walead_submit` en el `dataLayer`
+y se abre WhatsApp con el mensaje armado.
+
+### Paso 2 — Configurar GTM
+
+Ver [Medición y conversiones avanzadas](#medición-y-conversiones-avanzadas-google-ads--ga4--meta).
+Ahí también se arma el guardado en la hoja o el CRM.
 
 ---
 
@@ -71,24 +64,23 @@ Solo **`data-phone` es obligatorio**. El resto son opcionales.
 | Atributo | Ejemplo | Descripción |
 |---|---|---|
 | `data-phone` | `5491122334455` | **(Obligatorio)** Número de WhatsApp del negocio, con código de país, sin `+` ni espacios. |
-| `data-sheet` | `https://…/exec` | URL del Apps Script donde se guardan los leads. Si lo omites, solo abre WhatsApp (no guarda). |
 | `data-name` | `Pizzería Don José` | Nombre del negocio. Es el título por defecto y se inserta con `{negocio}` en cualquier texto. |
 | `data-country` | `AR` | País preseleccionado en el teléfono (código ISO). Si lo omites, se detecta por el idioma del navegador. |
 | `data-countries` | `AR,UY,PY` | Países que aparecen destacados arriba de la lista (el resto sigue disponible). |
 | `data-color` | `#25D366` | Color de marca (burbuja, botón, encabezado). El texto se ajusta a negro/blanco solo. |
+| `data-theme` | `auto` / `light` / `dark` | Tema del panel. Por defecto `auto`: mira el fondo del sitio. La fuente del widget también se toma del sitio. |
 | `data-position` | `right` / `left` | Esquina donde aparece la burbuja. Por defecto `right`. |
 | `data-title` | `¿Hablamos?` | Título del encabezado del panel. |
-| `data-subtitle` | `Te respondemos por WhatsApp` | Línea opcional debajo del título. Si la omites, no se muestra. |
-| `data-avatar` | `https://…/logo.png` | Foto o logo redondo en el encabezado. Por defecto, el ícono de WhatsApp. |
+| `data-subtitle` | `Te respondemos por WhatsApp` | Línea debajo del título. Por defecto: "Te respondemos por WhatsApp". Vacío (`data-subtitle=""`) = no se muestra. |
+| `data-avatar` | `https://…/logo.png` | Logo del negocio en el encabezado, sobre un círculo blanco y con un puntito verde de WhatsApp. Conviene un logo cuadrado. Por defecto, el ícono de WhatsApp. |
 | `data-greeting` | `¡Hola! 👋 …` | Mensaje tipo chat que se muestra arriba del formulario. Vacío = no se muestra. |
 | `data-cta-text` | `¿Te ayudamos? 👋` | Globo de texto junto a la burbuja (si lo omites, muestra solo el ícono). |
 | `data-button-text` | `Continuar en WhatsApp` | Texto del botón de envío. |
 | `data-template` | ver abajo | Mensaje que queda escrito en WhatsApp. |
-| `data-consent-text` | `Acepto ser contactado.` | Si lo defines, muestra un checkbox obligatorio de consentimiento. |
-| `data-privacy` | `Tus datos están seguros.` | Texto con candado debajo del botón. Vacío = no se muestra. |
+| `data-consent-text` | `Acepto que {negocio} guarde mi email y mi WhatsApp para contactarme.` | Cambia el texto de la casilla de consentimiento. La casilla siempre aparece, sale destildada y es obligatoria: sin tildarla no se envía nada. |
+| `data-privacy` | `Te respondemos en el día.` | Texto opcional con candado debajo del botón. Por defecto no se muestra. |
 | `data-delay` | `5000` | Milisegundos para abrir el panel solo (una vez por sesión). `0` = no abrir solo. |
 | `data-thanks` | `Te estamos llevando…` | Texto de la pantalla de confirmación. |
-| `data-currency` | `ARS` | Moneda que se guarda en la hoja (columna `_moneda`) y se envía al dataLayer. |
 | `data-triggers` | `.btn-contacto` | Selector CSS de botones/links del sitio que abren el widget. Ver abajo. |
 | `data-launcher` | `false` | Oculta la burbuja flotante: el widget se abre solo desde botones del sitio. |
 
@@ -154,7 +146,7 @@ Variables disponibles:
 
 ```html
 data-name="Pizzería Don José"
-data-greeting="¡Hola! 👋 Somos {negocio}. Déjanos tu email y tu WhatsApp y te respondemos enseguida."
+data-greeting="¡Hola! 👋 Somos {negocio}. Dejanos tu email y tu WhatsApp y te respondemos enseguida."
 data-template="¡Hola {negocio}! Vi la página {pagina} y quiero hacer una consulta."
 ```
 
@@ -174,56 +166,26 @@ Define la configuración antes de cargar el widget:
 <script>
   window.WALEAD_CONFIG = {
     phone: "5491122334455",
-    sheet: "https://script.google.com/macros/s/XXXX/exec",
-    country: "AR",
-    currency: "ARS"
+    country: "AR"
   };
 </script>
-<script src="https://cdn.jsdelivr.net/gh/VictorBogado23/walead-widget@v1.1.0/widget.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/VictorBogado23/walead-widget@v1.2.0/widget.min.js"></script>
 ```
 
 Las claves son las mismas que los atributos, en camelCase (`buttonText`, `ctaText`, …).
 
 ---
 
-## Qué se guarda en la hoja
-
-El widget envía el lead **directo** al Apps Script de `data-sheet` (no hace falta GTM para
-guardar). Cada lead crea una fila con:
-
-| Columna | Ejemplo |
-|---|---|
-| `Fecha` | `2026-11-04 17:21:46-0300`: formato que acepta Google Ads en conversiones offline, con la zona horaria de la planilla |
-| `lead_id` | `wl_3f9a1c2e7b604d18` (ver [leads duplicados](#leads-duplicados)) |
-| `email` | `juan@gmail.com` (en minúsculas) |
-| `telefono` | `+5491122334455` (E.164) |
-| `pais` | `AR` |
-| `codigo_pais` | `+54` |
-| `_moneda` | `ARS` (si se configuró) |
-| `_page_url`, `_page_title`, `_referrer` | de qué página vino |
-| `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` | campaña del último clic |
-| `gclid`, `gbraid`, `wbraid`, `fbclid`, `fbp`, `fbc` | identificadores de anuncios (ver abajo) |
-
-El widget guarda el clic durante 90 días, así que no se pierde si la persona cambia de página o
-vuelve después. Si la URL no trae `gclid`, lo toma de `localStorage` (`gclid`, por ejemplo guardado
-desde GTM) o de la cookie `_gcl_aw`. Las columnas nuevas se crean solas cuando llega un dato.
-
-> Si actualizas desde una versión anterior, vuelve a pegar `Codigo-Apps-Script.gs` y publica
-> una **nueva versión** de la implementación: la versión nueva guarda el teléfono como texto
-> para que Sheets no le borre el `+`.
-
----
-
 ## Leads duplicados
 
 Cada lead tiene un `lead_id` que sale del número del negocio, el email y el teléfono: la misma
-persona tiene siempre el mismo ID, en cualquier navegador o dispositivo. Hay tres barreras:
+persona tiene siempre el mismo ID, en cualquier navegador o dispositivo. Hay dos barreras:
 
-1. **Widget**: si ese navegador ya envió el lead, no vuelve a guardarlo ni a contar conversión.
+1. **Widget**: si ese navegador ya envió el lead, no vuelve a publicar `walead_submit`.
    La persona igual pasa a WhatsApp y se publica `walead_repeat`.
-2. **Apps Script**: si el `lead_id` ya está en la hoja, no agrega otra fila.
-3. **Google Ads / Meta**: usando `walead_lead_id` como ID de transacción o `event_id`, descartan
-   la conversión repetida aunque venga de otro dispositivo.
+2. **Google Ads / Meta**: usando `walead_lead_id` como ID de transacción o `event_id`, descartan
+   la conversión repetida aunque venga de otro dispositivo. Si guardas en una hoja desde GTM,
+   usa el mismo ID para no repetir filas.
 
 Si la persona cambia el email o el teléfono, cuenta como un lead nuevo.
 
@@ -237,33 +199,32 @@ Al enviarse un lead, el widget hace:
 dataLayer.push({
   event: "walead_submit",
   walead_lead_id: "wl_3f9a1c2e7b604d18",
-  walead_email: "juan@gmail.com",
-  walead_telefono: "+5491122334455",   // E.164
-  walead_pais: "AR",
-  walead_moneda: "ARS",
   user_data: {
-    email: "juan@gmail.com",
-    phone_number: "+5491122334455",
+    email: "juan@gmail.com",           // en minúsculas
+    phone_number: "+5491122334455",    // E.164
     address: { country: "AR" }
   }
 });
 ```
 
-Este evento es **solo para medir**: el guardado en la hoja ya lo hace el widget, así que no
-armes en GTM una etiqueta que también escriba en el Sheet (duplicaría filas).
+El email y el teléfono van **solo** dentro de `user_data`.
 
 Configuración en GTM:
 
 1. **Activador**: Evento personalizado → nombre `walead_submit`.
-2. **Variables de capa de datos**: `walead_lead_id`, `walead_email`, `walead_telefono` (y `user_data` si la quieres usar entera).
+2. **Variables de capa de datos** (versión 2): `walead_lead_id`, `user_data.email`,
+   `user_data.phone_number` y, si la quieres entera, `user_data`.
 3. **Google Ads — Conversiones avanzadas**: en la etiqueta de conversión, activa *Incluir datos
    proporcionados por el usuario* → nueva variable *Datos proporcionados por el usuario* →
-   *Configuración manual* → Email = `{{walead_email}}`, Teléfono = `{{walead_telefono}}`.
+   *Configuración manual* → Email = `{{user_data.email}}`, Teléfono = `{{user_data.phone_number}}`.
    En *ID de transacción* usa `{{walead_lead_id}}`.
 4. **GA4**: en la etiqueta de evento (ej. `generate_lead`), en *Datos proporcionados por el
    usuario*, usa la misma variable.
-5. **Meta (píxel / CAPI)**: manda `event_id` = `{{walead_lead_id}}`, `em` = `{{walead_email}}` y `ph` = `{{walead_telefono}}`
-   (Meta pide el teléfono sin `+`; GTM o tu plantilla de CAPI lo normaliza y hashea).
+5. **Meta (píxel / CAPI)**: manda `event_id` = `{{walead_lead_id}}`, `em` = `{{user_data.email}}`
+   y `ph` = `{{user_data.phone_number}}` (Meta pide el teléfono sin `+`; GTM o tu plantilla de
+   CAPI lo normaliza y hashea).
+6. **Hoja o CRM**: una etiqueta con el mismo activador que envíe `walead_lead_id`, el email y
+   el teléfono. Los datos de campaña (`gclid`, `utm_*`) los toma GTM con sus propias variables.
 
 Google y Meta hashean (SHA-256) los datos del lado de la etiqueta: el widget los entrega
 normalizados (email en minúsculas, teléfono E.164), que es lo que exigen para que coincidan.
@@ -290,5 +251,5 @@ Cada paso publica un evento en el `dataLayer`; crea en GTM un activador por cada
   etiquetas y errores leídos por lectores de pantalla, respeta "reducir movimiento".
 - Las banderas se cargan desde `flagcdn.com`.
 - Si `data-phone` falta, el widget no se muestra (y avisa por consola).
-- Los datos del visitante solo se envían a la hoja del cliente (y al dataLayer del propio
-  sitio); no pasan por ningún otro servidor.
+- El widget no envía los datos del visitante a ningún servidor: solo los publica en el
+  `dataLayer` del propio sitio. Adónde van después lo decide la configuración de GTM.

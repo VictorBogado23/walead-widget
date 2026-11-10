@@ -103,11 +103,6 @@
           <input type="tel" id="phone" placeholder="Ej: 5491122334455" inputmode="tel">
           <div class="help">Con código de país, sin + ni espacios. Argentina: 54 9 + característica + número.</div>
         </div>
-        <div class="f">
-          <label for="sheet">URL de la hoja de leads (Apps Script)</label>
-          <input type="url" id="sheet" placeholder="https://script.google.com/macros/s/…/exec">
-          <div class="help">Si la dejas vacía, el widget abre WhatsApp pero no guarda los datos.</div>
-        </div>
       </section>
 
       <section class="card">
@@ -115,7 +110,7 @@
         <p class="lead">Lo que ve el visitante y lo que te llega por WhatsApp.</p>
         <div class="f">
           <label for="greeting">Saludo del negocio (dentro del widget)</label>
-          <textarea id="greeting" placeholder="¡Hola! 👋 Déjanos tu email y tu WhatsApp y seguimos la conversación por ahí."></textarea>
+          <textarea id="greeting" placeholder="¡Hola! 👋 Dejanos tu email y tu WhatsApp y seguimos la conversación por ahí."></textarea>
           <div class="chips" data-for="greeting"><span>Insertar:</span><button type="button" class="chip" data-v="{negocio}">Nombre del negocio</button></div>
           <label class="check show"><input type="checkbox" id="showGreeting" checked> Mostrar el saludo</label>
         </div>
@@ -138,8 +133,9 @@
             <input type="text" id="title" placeholder="¿Hablamos?">
           </div>
           <div class="f">
-            <label for="subtitle">Subtítulo (opcional)</label>
-            <input type="text" id="subtitle" placeholder="Ej: Te respondemos por WhatsApp">
+            <label for="subtitle">Subtítulo</label>
+            <input type="text" id="subtitle" placeholder="Te respondemos por WhatsApp">
+            <label class="check show"><input type="checkbox" id="showSubtitle" checked> Mostrar el subtítulo</label>
           </div>
         </div>
         <div class="row">
@@ -178,6 +174,8 @@
           <input type="url" id="avatar" placeholder="https://…/logo.png">
         </div>
         <div class="f">
+          <label for="theme">Tema del panel</label>
+          <select id="theme"><option value="auto">Automático según el sitio</option><option value="light">Claro</option><option value="dark">Oscuro</option></select>
           <label class="check"><input type="checkbox" id="launcher" checked> Mostrar la burbuja flotante</label>
           <div class="help">Si la ocultas, el widget se abre solo desde botones del sitio (ver "Botones que abren el widget").</div>
         </div>
@@ -202,23 +200,19 @@
         </div>
         <div class="f">
           <label for="consentText">Casilla de consentimiento</label>
-          <input type="text" id="consentText" placeholder="Ej: Acepto ser contactado por WhatsApp y email.">
-          <div class="help">Si escribes un texto, la casilla aparece y es obligatoria.</div>
+          <input type="text" id="consentText" placeholder="Acepto que {negocio} guarde mi email y mi WhatsApp para contactarme.">
+          <div class="help">La casilla siempre aparece y es obligatoria. Acá solo cambiás el texto.</div>
         </div>
         <div class="row">
           <div class="f">
             <label for="delay">Abrir solo después de (segundos)</label>
             <input type="number" id="delay" min="0" step="1" placeholder="0 = no abrir solo">
           </div>
-          <div class="f">
-            <label for="currency">Moneda (para la hoja)</label>
-            <input type="text" id="currency" placeholder="Ej: ARS">
-          </div>
         </div>
         <div class="row">
           <div class="f">
             <label for="privacy">Texto de privacidad</label>
-            <input type="text" id="privacy" placeholder="Tus datos están seguros. Nada de spam.">
+            <input type="text" id="privacy" placeholder="Opcional: texto debajo del botón">
             <label class="check show"><input type="checkbox" id="showPrivacy" checked> Mostrar el texto de privacidad</label>
           </div>
           <div class="f">
@@ -245,10 +239,14 @@
             <button type="button" data-dev="desktop" aria-pressed="true">Escritorio</button>
             <button type="button" data-dev="mobile" aria-pressed="false">Celular</button>
           </div>
+          <div class="tabs" role="group" aria-label="Fondo de prueba">
+            <button type="button" data-bg="light" aria-pressed="true">Sitio claro</button>
+            <button type="button" data-bg="dark" aria-pressed="false">Sitio oscuro</button>
+          </div>
         </div>
         <div class="stage" id="stage"><iframe id="preview" title="Vista previa del widget"></iframe></div>
         <div class="help" style="color:var(--muted);font-size:12.5px;margin-top:8px">
-          La vista previa funciona de verdad: si cargaste la URL de la hoja, un envío de prueba se guarda ahí.
+          La vista previa funciona de verdad: al enviar, abre WhatsApp con el mensaje armado.
         </div>
 
         <h2 style="font-size:16px;margin:20px 0 8px">Así te llega a WhatsApp</h2>
@@ -273,22 +271,22 @@
 (function () {
   "use strict";
 
-  var DEFAULT_SRC = "https://cdn.jsdelivr.net/gh/VictorBogado23/walead-widget@v1.1.0/widget.min.js";
+  var DEFAULT_SRC = "https://cdn.jsdelivr.net/gh/VictorBogado23/walead-widget@v1.2.0/widget.min.js";
   var STORE_KEY = "walead_configurador";
 
   // Campo del formulario -> atributo del widget (data-*) y clave camelCase (WALEAD_CONFIG).
   var FIELDS = [
-    ["phone", "phone"], ["sheet", "sheet"], ["name", "name"],
+    ["phone", "phone"], ["name", "name"],
     ["title", "title"], ["subtitle", "subtitle"], ["greeting", "greeting"],
     ["template", "template"], ["buttonText", "button-text"], ["ctaText", "cta-text"],
     ["colorText", "color"], ["position", "position"], ["avatar", "avatar"],
-    ["launcher", "launcher"], ["country", "country"], ["countries", "countries"],
+    ["theme", "theme"], ["launcher", "launcher"], ["country", "country"], ["countries", "countries"],
     ["triggers", "triggers"], ["consentText", "consent-text"], ["delay", "delay"],
-    ["currency", "currency"], ["privacy", "privacy"], ["thanks", "thanks"],
+    ["privacy", "privacy"], ["thanks", "thanks"],
   ];
-  var DEFAULTS = { position: "right", colorText: "#25D366", launcher: true };
+  var DEFAULTS = { position: "right", colorText: "#25D366", launcher: true, theme: "auto" };
   // Textos que se pueden quitar: campo -> casilla "Mostrar".
-  var SHOW = { greeting: "showGreeting", privacy: "showPrivacy" };
+  var SHOW = { greeting: "showGreeting", subtitle: "showSubtitle", privacy: "showPrivacy" };
 
   var COUNTRIES = [
     ["AR","Argentina"],["BO","Bolivia"],["BR","Brasil"],["CL","Chile"],["CO","Colombia"],["CR","Costa Rica"],
@@ -345,7 +343,6 @@
       if (f[0] === "phone") v = v.replace(/\D/g, "");
       if (f[0] === "delay") v = v && Number(v) > 0 ? String(Math.round(Number(v) * 1000)) : "";
       if (f[0] === "countries") v = v.toUpperCase().replace(/\s+/g, "");
-      if (f[0] === "currency") v = v.toUpperCase();
       if (!v || (DEFAULTS[f[0]] && String(v).toLowerCase() === String(DEFAULTS[f[0]]).toLowerCase())) return;
       out.push([name, v]);
     });
@@ -372,13 +369,15 @@
   }
 
   // ---------- Vista previa ----------
+  var previewBg = "light";
   function previewDoc(list) {
+    var dark = previewBg === "dark";
     var fake = "";
     for (var i = 0; i < 6; i++) fake += '<div class="b" style="width:' + (55 + (i * 37) % 40) + '%"></div>';
     return "<!doctype html><html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
-      "<title>Página de ejemplo</title><style>body{margin:0;font-family:system-ui,sans-serif;background:#f6f8fa}" +
-      ".nav{height:56px;background:#fff;border-bottom:1px solid #e5e9ec}.h{margin:36px 28px 18px;height:26px;width:52%;background:#d9e0e5;border-radius:8px}" +
-      ".b{margin:12px 28px;height:12px;background:#e3e8ec;border-radius:6px}.btn{margin:24px 28px;display:inline-block;padding:10px 18px;border-radius:8px;background:#1a2530;color:#fff;font-size:14px;text-decoration:none}</style></head>" +
+      "<title>Página de ejemplo</title><style>body{margin:0;font-family:system-ui,sans-serif;background:" + (dark ? "#070c18" : "#f6f8fa") + "}" +
+      ".nav{height:56px;background:" + (dark ? "#0e1627" : "#fff") + ";border-bottom:1px solid " + (dark ? "#223050" : "#e5e9ec") + "}.h{margin:36px 28px 18px;height:26px;width:52%;background:" + (dark ? "#223050" : "#d9e0e5") + ";border-radius:8px}" +
+      ".b{margin:12px 28px;height:12px;background:" + (dark ? "#16213a" : "#e3e8ec") + ";border-radius:6px}.btn{margin:24px 28px;display:inline-block;padding:10px 18px;border-radius:8px;background:#1a2530;color:#fff;font-size:14px;text-decoration:none}</style></head>" +
       '<body><div class="nav"></div><div class="h"></div>' + fake +
       '<a class="btn" href="#walead">Botón “Contacto” del sitio</a>' +
       snippet(list, new URL("widget.js", location.href).href) +
@@ -416,8 +415,6 @@
     var phone = s.phone.replace(/\D/g, "");
     if (!phone) w.push("Falta el <b>WhatsApp del negocio</b>: sin ese número el widget no se muestra.");
     else if (phone.length < 10) w.push("El WhatsApp del negocio parece corto. Incluye el código de país (Argentina: 549…).");
-    if (s.sheet && !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(s.sheet))
-      w.push("La URL de la hoja debería verse así: <code>https://script.google.com/macros/s/…/exec</code>");
     if (/\{\s*negocio\s*\}/.test(s.greeting + s.template) && !s.name)
       w.push("Usas <b>{negocio}</b> pero no cargaste el nombre del negocio.");
     var box = $("warn");
@@ -473,10 +470,19 @@
   });
 
   // Dispositivo de la vista previa
-  document.querySelectorAll(".tabs button").forEach(function (b) {
+  document.querySelectorAll("[data-dev]").forEach(function (b) {
     b.addEventListener("click", function () {
-      document.querySelectorAll(".tabs button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      document.querySelectorAll("[data-dev]").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
       $("stage").classList.toggle("mobile", b.getAttribute("data-dev") === "mobile");
+    });
+  });
+
+  // Fondo de prueba: permite ver el widget sobre un sitio claro u oscuro.
+  document.querySelectorAll("[data-bg]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.querySelectorAll("[data-bg]").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      previewBg = b.getAttribute("data-bg");
+      update(true);
     });
   });
 
@@ -512,7 +518,7 @@
     initial = {
       name: "Pizzería Don José",
       phone: "5491122334455",
-      greeting: "¡Hola! 👋 Somos {negocio}. Déjanos tu email y tu WhatsApp y te respondemos enseguida.",
+      greeting: "¡Hola! 👋 Somos {negocio}. Dejanos tu email y tu WhatsApp y te respondemos enseguida.",
       template: "¡Hola {negocio}! Vi la página {pagina} y quiero hacer una consulta.",
       colorText: "#25D366", position: "right", launcher: true, country: "AR",
     };
