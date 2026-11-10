@@ -364,8 +364,13 @@
     var obj = {};
     list.forEach(function (a) { obj[camel(a[0])] = a[0] === "delay" ? Number(a[1]) : a[1]; });
     var json = JSON.stringify(obj, null, 2).replace(/</g, "\\u003c").replace(/\n/g, "\n  ");
-    return "<script>\n  window.WALEAD_CONFIG = " + json + ";\n</" + "script>\n" +
-      '<script src="' + escAttr(src) + '"></' + "script>";
+    // ?d=fecha: cada navegador pide el widget de nuevo una vez por día (actualizaciones sin tocar GTM).
+    return "<script>\n  window.WALEAD_CONFIG = " + json + ";\n" +
+      "  (function () {\n" +
+      '    var s = document.createElement("script");\n' +
+      "    s.src = " + JSON.stringify(src).replace(/</g, "\\u003c") + ' + "?d=" + new Date().toISOString().slice(0, 10);\n' +
+      "    document.head.appendChild(s);\n" +
+      "  })();\n</" + "script>";
   }
 
   // ---------- Vista previa ----------

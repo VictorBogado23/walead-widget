@@ -168,9 +168,16 @@ Define la configuración antes de cargar el widget:
     phone: "5491122334455",
     country: "AR"
   };
+  (function () {
+    var s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/gh/VictorBogado23/walead-widget@1/widget.min.js?d=" + new Date().toISOString().slice(0, 10);
+    document.head.appendChild(s);
+  })();
 </script>
-<script src="https://cdn.jsdelivr.net/gh/VictorBogado23/walead-widget@1/widget.min.js"></script>
 ```
+
+El `?d=` con la fecha hace que cada navegador pida el widget de nuevo una vez por día, así
+nadie se queda con una versión vieja guardada.
 
 Las claves son las mismas que los atributos, en camelCase (`buttonText`, `ctaText`, …).
 
@@ -181,9 +188,9 @@ llegan solas a todos los sitios **sin tocar GTM**. Dentro de la versión 1 nunca
 ni se renombran opciones ni datos del `dataLayer`; solo se agregan. Un cambio que obligue
 a tocar la instalación saldría como versión 2 y habría que pasar a `@2` a mano.
 
-Una versión nueva tarda hasta 12 horas en llegar a jsDelivr (al publicar se fuerza la
-actualización para que llegue al momento) y hasta 7 días en navegadores que ya tenían
-guardada la anterior. Para fijar una versión exacta, usa `@v1.2.0`.
+Una versión nueva tarda hasta 12 horas en llegar a todos los sitios (lo que tarda jsDelivr
+en enterarse de la versión nueva). Con el código de GTM de arriba, los navegadores la toman
+como mucho al día siguiente. Para fijar una versión exacta, usa `@v1.2.2`.
 
 ---
 
