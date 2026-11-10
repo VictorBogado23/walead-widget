@@ -169,10 +169,21 @@ Define la configuración antes de cargar el widget:
     country: "AR"
   };
 </script>
-<script src="https://cdn.jsdelivr.net/gh/VictorBogado23/walead-widget@v1.2.0/widget.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/VictorBogado23/walead-widget@1/widget.min.js"></script>
 ```
 
 Las claves son las mismas que los atributos, en camelCase (`buttonText`, `ctaText`, …).
+
+### Actualizaciones automáticas
+
+La dirección termina en `@1`: carga siempre la última versión 1.x, así que las mejoras
+llegan solas a todos los sitios **sin tocar GTM**. Dentro de la versión 1 nunca se quitan
+ni se renombran opciones ni datos del `dataLayer`; solo se agregan. Un cambio que obligue
+a tocar la instalación saldría como versión 2 y habría que pasar a `@2` a mano.
+
+Una versión nueva tarda hasta 12 horas en llegar a jsDelivr (al publicar se fuerza la
+actualización para que llegue al momento) y hasta 7 días en navegadores que ya tenían
+guardada la anterior. Para fijar una versión exacta, usa `@v1.2.0`.
 
 ---
 
